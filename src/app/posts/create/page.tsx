@@ -12,7 +12,7 @@ export default function CreatePostPage() {
       <Header />
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <Button asChild variant="outline" size="sm" className="text-foreground hover:text-foreground/90">
+          <Button asChild variant="default" size="sm">
             <Link href="/">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Posts
