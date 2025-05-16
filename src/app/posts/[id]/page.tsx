@@ -17,6 +17,7 @@ interface PostPageProps {
 
 export default async function PostPage({ params }: PostPageProps) {
   const post = await getPostById(params.id);
+  const isAdminMode = process.env.NEXT_PUBLIC_ADMIN_MODE === 'true';
 
   if (!post) {
     notFound();
@@ -45,7 +46,7 @@ export default async function PostPage({ params }: PostPageProps) {
                   day: 'numeric',
                 })}
               </CardDescription>
-              <DeleteConfirmationDialog post={post} />
+              {isAdminMode && <DeleteConfirmationDialog post={post} />}
             </div>
           </CardHeader>
           <CardContent>
@@ -66,4 +67,3 @@ export default async function PostPage({ params }: PostPageProps) {
     </>
   );
 }
-

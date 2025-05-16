@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import type { Post } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,9 +19,10 @@ function generateExcerpt(content: string, maxLength: number = 100) {
 
 export function PostCard({ post }: PostCardProps) {
   const excerpt = generateExcerpt(post.content);
+  const isAdminMode = process.env.NEXT_PUBLIC_ADMIN_MODE === 'true';
 
   return (
-    <Card className="overflow-hidden shadow-lg hover:shadow-[0_0_15px_5px_hsl(220,50%,40%)] active:shadow-[0_0_15px_5px_hsl(220,50%,40%)] transition-shadow duration-300 animate-in fade-in-0 duration-500">
+    <Card className="overflow-hidden shadow-lg hover:shadow-[0_0_15px_5px_hsl(220,50%,40%)] active:shadow-[0_0_15px_5px_hsl(220,50%,40%)] transition-shadow duration-300">
       <CardHeader>
         <CardTitle className="text-2xl hover:text-primary transition-colors">
           <Link href={`/posts/${post.id}`}>{post.title}</Link>
@@ -43,7 +45,7 @@ export function PostCard({ post }: PostCardProps) {
             View Post
           </Link>
         </Button>
-        <DeleteConfirmationDialog post={post} />
+        {isAdminMode && <DeleteConfirmationDialog post={post} />}
       </CardFooter>
     </Card>
   );
