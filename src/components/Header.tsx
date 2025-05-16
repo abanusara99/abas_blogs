@@ -13,7 +13,7 @@ export function Header() {
           ABASBlogs
         </Link>
         <div className="col-span-1 flex justify-end">
-          <Button asChild variant="outline">
+          <Button asChild variant="accent">
             <Link href="/posts/create">
               <PlusCircle className="mr-2 h-5 w-5" />
               Create Post
