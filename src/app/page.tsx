@@ -14,7 +14,7 @@ export default async function HomePage() {
         {posts.length === 0 ? (
           <p className="text-center text-muted-foreground text-lg">No posts yet. Be the first to create one!</p>
         ) : (
-          <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-1">
+          <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2">
             {posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}

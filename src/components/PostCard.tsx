@@ -20,7 +20,7 @@ export function PostCard({ post }: PostCardProps) {
   const excerpt = generateExcerpt(post.content);
 
   return (
-    <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 animate-in fade-in-0 duration-500">
+    <Card className="overflow-hidden shadow-lg hover:shadow-[0_0_15px_5px_hsl(220,50%,40%)] active:shadow-[0_0_15px_5px_hsl(220,50%,40%)] transition-shadow duration-300 animate-in fade-in-0 duration-500">
       <CardHeader>
         <CardTitle className="text-2xl hover:text-primary transition-colors">
           <Link href={`/posts/${post.id}`}>{post.title}</Link>
