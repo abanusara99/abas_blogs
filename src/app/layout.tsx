@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { Footer } from '@/components/Footer'; // Import the new Footer component
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'BlogLite - Your Simple Blogging Platform',
-  description: 'Create, read, and manage blog posts with ease.',
+  title: 'ABASBlogs - Your Simple Blogging Platform', // Updated title
+  description: 'Create, read, and manage blog posts with ease on ABASBlogs.', // Updated description
 };
 
 export default function RootLayout({
@@ -30,9 +31,7 @@ export default function RootLayout({
           <main className="flex-grow">
             {children}
           </main>
-          <footer className="py-6 text-center text-sm text-muted-foreground border-t border-border mt-12">
-            © {new Date().getFullYear()} BlogLite. All rights reserved.
-          </footer>
+          <Footer /> {/* Use the new Footer component */}
         </div>
         <Toaster />
       </body>
