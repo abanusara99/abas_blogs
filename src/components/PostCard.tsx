@@ -37,7 +37,7 @@ export function PostCard({ post }: PostCardProps) {
         <p className="text-muted-foreground leading-relaxed">{excerpt}</p>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        <Button asChild variant="accent" size="sm">
+        <Button asChild variant="default" size="sm">
           <Link href={`/posts/${post.id}`}>
             <Eye className="mr-2 h-4 w-4" />
             View Post

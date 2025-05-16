@@ -74,11 +74,11 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
         <Button 
-          variant="destructive" // Changed to destructive variant for dark red background
+          variant="destructive" 
           size="icon" 
           aria-label="Delete post"
         >
-          <Trash2 className="h-5 w-5" /> {/* Icon color will be destructive-foreground */}
+          <Trash2 className="h-5 w-5" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -94,7 +94,7 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isPending}
-            className="bg-blue-700 hover:bg-blue-800 text-white" // Confirmation button in dialog remains dark blue
+            // Removed custom className to use default button variant styling
           >
             {isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>
@@ -103,4 +103,3 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
     </AlertDialog>
   );
 }
-
