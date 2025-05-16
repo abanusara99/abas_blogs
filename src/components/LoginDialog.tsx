@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login } from "@/lib/authActions";
 import { useToast } from "@/hooks/use-toast";
-import { LogIn, Eye, EyeOff } from "lucide-react"; // Import Eye and EyeOff icons
+import { User, Eye, EyeOff } from "lucide-react"; // Changed LogIn to User
 import { useRouter } from "next/navigation";
 
 export function LoginDialog() {
@@ -75,7 +75,7 @@ export function LoginDialog() {
     }}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <LogIn className="mr-2 h-4 w-4" /> Login
+          <User className="mr-2 h-4 w-4" /> Login {/* Changed LogIn to User */}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
