@@ -46,7 +46,7 @@ export default async function PostPage({ params }: PostPageProps) {
                   day: 'numeric',
                 })}
               </CardDescription>
-              {isAdminMode && <DeleteConfirmationDialog post={post} />}
+              {isAdminMode && <DeleteConfirmationDialog post={post} data-admin-visibility="true" />}
             </div>
           </CardHeader>
           <CardContent>

@@ -11,18 +11,28 @@ interface PostCardProps {
 }
 
 function generateExcerpt(content: string, maxLength: number = 100) {
-  if (content.length <= maxLength) {
-    return content;
+  // Basic excerpt, doesn't break words mid-way intelligently
+  const trimmedContent = content.trim();
+  if (trimmedContent.length <= maxLength) {
+    return trimmedContent;
   }
-  return content.substring(0, maxLength).trimEnd() + "...";
+  // Find the last space within the maxLength
+  const sub = trimmedContent.substring(0, maxLength);
+  const lastSpace = sub.lastIndexOf(' ');
+  if (lastSpace > 0) {
+    return sub.substring(0, lastSpace).trimEnd() + "...";
+  }
+  // If no space found, just cut at maxLength (less ideal)
+  return sub.trimEnd() + "...";
 }
+
 
 export function PostCard({ post }: PostCardProps) {
   const excerpt = generateExcerpt(post.content);
   const isAdminMode = process.env.NEXT_PUBLIC_ADMIN_MODE === 'true';
 
   return (
-    <Card className="overflow-hidden shadow-lg hover:shadow-[0_0_15px_5px_hsl(220,50%,40%)] active:shadow-[0_0_15px_5px_hsl(220,50%,40%)] transition-shadow duration-300">
+    <Card className="overflow-hidden shadow-lg hover:shadow-[0_0_15px_5px_hsl(var(--primary))] active:shadow-[0_0_15px_5px_hsl(var(--primary))] transition-shadow duration-300">
       <CardHeader>
         <CardTitle className="text-2xl hover:text-primary transition-colors">
           <Link href={`/posts/${post.id}`}>{post.title}</Link>
@@ -45,7 +55,7 @@ export function PostCard({ post }: PostCardProps) {
             View Post
           </Link>
         </Button>
-        {isAdminMode && <DeleteConfirmationDialog post={post} />}
+        {isAdminMode && <DeleteConfirmationDialog post={post} data-admin-visibility="true" />}
       </CardFooter>
     </Card>
   );
