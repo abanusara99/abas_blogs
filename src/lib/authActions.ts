@@ -60,15 +60,22 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
       return { success: false, error: 'Login failed: Could not save session (update failed).' };
     }
 
-    // Verify the token was written
-    const verifyTokenStmt = db.prepare('SELECT sessionToken FROM admins WHERE id = ?');
-    const updatedAdmin = verifyTokenStmt.get(admin.id) as { sessionToken: string | null } | undefined;
+    // More robust verification: Query by the token itself to ensure it's written and retrievable
+    const verifyByTokenStmt = db.prepare('SELECT id, sessionToken FROM admins WHERE sessionToken = ?');
+    const verifiedAdminByToken = verifyByTokenStmt.get(sessionToken) as { id: number; sessionToken: string | null } | undefined;
 
-    if (!updatedAdmin || updatedAdmin.sessionToken !== sessionToken) {
-      console.error('[AUTH] Failed to verify session token in DB after update. Admin ID:', admin.id, 'Expected:', sessionToken, 'Got:', updatedAdmin?.sessionToken);
-      return { success: false, error: 'Login failed: Could not save session (verification failed). Please try again.' };
+    if (!verifiedAdminByToken || verifiedAdminByToken.sessionToken !== sessionToken || verifiedAdminByToken.id !== admin.id) {
+      console.error('[AUTH] Failed to verify session token in DB by querying the token itself. Admin ID:', admin.id, 'Expected Token:', sessionToken, 'Found Admin by Token:', JSON.stringify(verifiedAdminByToken));
+      // Attempt to log all tokens for debugging if verification fails
+      try {
+        const allAdminsInDB = db.prepare('SELECT id, username, sessionToken FROM admins').all();
+        console.log('[AUTH] LOGIN VERIFY FAIL DEBUG - All admins currently in DB:', JSON.stringify(allAdminsInDB, null, 2));
+      } catch (debugDbError: any) {
+        console.error('[AUTH] LOGIN VERIFY FAIL DEBUG - Error fetching all admins:', debugDbError.message);
+      }
+      return { success: false, error: 'Login failed: Could not save session (verification by token failed). Please try again.' };
     }
-    console.log('[AUTH] Session token successfully verified in DB after update for admin ID:', admin.id);
+    console.log('[AUTH] Session token successfully verified in DB by querying token itself for admin ID:', admin.id);
 
   } catch (dbError: any) {
     console.error('[AUTH] Database error during session token update/verification. Admin ID:', admin.id, 'Error:', dbError.message, 'Stack:', dbError.stack);
@@ -147,3 +154,4 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
     return null;
   }
 }
+
