@@ -73,8 +73,12 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Delete post">
-          <Trash2 className="h-5 w-5 text-destructive" />
+        <Button 
+          size="icon" 
+          aria-label="Delete post"
+          className="bg-blue-700 hover:bg-blue-800 text-white"
+        >
+          <Trash2 className="h-5 w-5" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -99,3 +103,4 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
     </AlertDialog>
   );
 }
+
