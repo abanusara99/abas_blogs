@@ -44,6 +44,7 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
           if (onDeleted) {
             onDeleted();
           } else {
+            // Ensure client-side navigation
             router.push('/');
             router.refresh(); 
           }
@@ -55,10 +56,9 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
           });
         }
       } catch (error) {
-        console.error("Error during post deletion:", error); // Log the actual error to the console
+        console.error("Error during post deletion:", error);
         let errorMessage = "An unexpected error occurred. Check the console for details.";
         if (error instanceof Error && error.message) {
-          // Use the error message if available, otherwise use the generic one
           errorMessage = error.message;
         }
         toast({
@@ -76,9 +76,9 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
         <Button 
           size="icon" 
           aria-label="Delete post"
-          className="bg-blue-700 hover:bg-blue-800 text-white"
+          className="bg-blue-700 hover:bg-blue-800" // Dark blue background
         >
-          <Trash2 className="h-5 w-5" />
+          <Trash2 className="h-5 w-5 text-destructive" /> {/* Red icon */}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -94,7 +94,7 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isPending}
-            className="bg-blue-700 hover:bg-blue-800 text-white"
+            className="bg-blue-700 hover:bg-blue-800 text-white" // Confirmation button remains dark blue with white text
           >
             {isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>
@@ -103,4 +103,3 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
     </AlertDialog>
   );
 }
-
