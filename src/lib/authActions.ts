@@ -36,7 +36,6 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
 
   if (!admin || admin.password !== providedPassword) {
     console.log('[AUTH] Login failed: Invalid username or password for username:', username);
-    // For debugging, let's see what the stored password is if the admin user exists
     if (admin) {
       console.log(`[AUTH] DEBUG: Stored password for ${username} is "${admin.password}". Provided password was "${providedPassword}".`);
     } else {
@@ -79,7 +78,7 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
   cookies().set(SESSION_COOKIE_NAME, sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24 * 365 * 10, // 10 years (effectively "lifetime" for prototype)
+    maxAge: 60 * 60 * 24 * 365 * 10, // 10 years
     path: '/',
     sameSite: 'lax',
   });
@@ -109,29 +108,30 @@ export async function logout(): Promise<{ success: boolean }> {
 }
 
 export async function getCurrentAdmin(): Promise<AdminUser | null> {
-  const cookieStore = cookies(); 
+  const cookieStore = cookies();
   const tokenFromCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
-  // console.log('[AUTH] getCurrentAdmin: Attempting to get current admin.'); // Reduced verbosity here
-  // console.log('[AUTH] getCurrentAdmin: Token from cookie:', tokenFromCookie);
-
-
   if (!tokenFromCookie) {
-    // console.log('[AUTH] getCurrentAdmin: No session token found in cookies.'); // Reduced verbosity
+    // This is normal if the user is not logged in.
+    // console.log('[AUTH] getCurrentAdmin: No session token found in cookies.');
     return null;
   }
 
-  try {
-    // Select all relevant fields for debugging, even if only id and username are returned.
-    const stmt = db.prepare('SELECT id, username, password, sessionToken FROM admins WHERE sessionToken = ?');
-    // console.log('[AUTH] getCurrentAdmin: Querying DB with token:', tokenFromCookie); // Reduced verbosity
-    const admin = stmt.get(tokenFromCookie) as (AdminUser & { password?: string, sessionToken?: string | null }) | undefined;
+  console.log('[AUTH] getCurrentAdmin: Attempting to find admin with token from cookie:', `"${tokenFromCookie}"`);
 
-    if (admin) {
-      console.log('[AUTH] getCurrentAdmin: Admin found in DB by token. Admin ID:', admin.id, 'Username:', admin.username, 'DB Token:', admin.sessionToken);
+  try {
+    const stmt = db.prepare('SELECT id, username, password, sessionToken FROM admins WHERE sessionToken = ?');
+    const admin = stmt.get(tokenFromCookie) as (AdminUser & { password?: string; sessionToken?: string | null }) | undefined;
+
+    if (admin && admin.sessionToken === tokenFromCookie) {
+      console.log('[AUTH] getCurrentAdmin: Admin FOUND in DB. Admin ID:', admin.id, 'Username:', admin.username, 'DB Token:', `"${admin.sessionToken}"`);
       return { id: admin.id, username: admin.username };
     } else {
-      console.log('[AUTH] getCurrentAdmin: No admin found in DB for token:', tokenFromCookie);
+      console.log('[AUTH] getCurrentAdmin: Admin NOT FOUND in DB for token:', `"${tokenFromCookie}"`);
+      if (admin && admin.sessionToken !== tokenFromCookie) {
+        // This case implies the query found a user by some other means, but the token didn't match - very unlikely with current query.
+        console.warn('[AUTH] getCurrentAdmin: DEBUG - A user was found, but their DB token did not match the cookie token. DB Token:', `"${admin.sessionToken}"`);
+      }
       // For debugging, let's see all admins and their tokens if no match is found.
       try {
         const allAdminsInDB = db.prepare('SELECT id, username, password, sessionToken FROM admins').all();
@@ -142,7 +142,8 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
       return null;
     }
   } catch (dbError: any) {
-    console.error('[AUTH] getCurrentAdmin: Database error:', dbError.message, 'Stack:', dbError.stack);
-    return null; 
+    console.error('[AUTH] getCurrentAdmin: Database error during admin lookup for token:', `"${tokenFromCookie}"`, 'Error:', dbError.message);
+    // console.error('[AUTH] getCurrentAdmin: Full stack for DB error:', dbError.stack); // Uncomment if very deep debugging is needed
+    return null;
   }
 }
