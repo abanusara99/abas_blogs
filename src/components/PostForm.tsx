@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createPost } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { Send, Bold, Italic, List, ListOrdered, Link2 } from "lucide-react";
+import { Send, Bold, Italic, List, ListOrdered, Link2, XCircle } from "lucide-react";
 import { useTransition, useRef } from "react";
 
 const formSchema = z.object({
@@ -182,17 +182,29 @@ export function PostForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isPending}>
-          {isPending ? (
-            "Submitting..."
-          ) : (
-            <>
-              <Send className="mr-2 h-4 w-4" />
-              Submit Post
-            </>
-          )}
-        </Button>
+        <div className="flex space-x-2">
+          <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isPending}>
+            {isPending ? (
+              "Submitting..."
+            ) : (
+              <>
+                <Send className="mr-2 h-4 w-4" />
+                Submit Post
+              </>
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => router.push('/')}
+            disabled={isPending}
+          >
+            <XCircle className="mr-2 h-4 w-4" />
+            Cancel
+          </Button>
+        </div>
       </form>
     </Form>
   );
 }
+
