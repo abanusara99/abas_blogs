@@ -2,7 +2,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import crypto from 'crypto'; // Still used for session token generation
+import crypto from 'crypto';
 import { db } from './db';
 import { revalidatePath } from 'next/cache';
 
@@ -11,24 +11,20 @@ const SESSION_COOKIE_NAME = 'session_token';
 export interface AdminUser {
   id: number;
   username: string;
-  // password is not exposed in AdminUser interface
 }
-
-// Removed hashPassword and verifyPassword functions as they are no longer used
 
 export async function login(formData: FormData): Promise<{ success: boolean; error?: string }> {
   const username = formData.get('username') as string;
-  const providedPassword = formData.get('password') as string; // Renamed for clarity
+  const providedPassword = formData.get('password') as string;
 
   if (!username || !providedPassword) {
     return { success: false, error: 'Username and password are required.' };
   }
 
-  // Changed: Select plain text password, no salt
+  // Direct plain text password comparison (INSECURE)
   const stmt = db.prepare('SELECT id, password FROM admins WHERE username = ?');
   const admin = stmt.get(username) as { id: number; password: string } | undefined;
 
-  // Changed: Direct password comparison (INSECURE)
   if (!admin || admin.password !== providedPassword) {
     return { success: false, error: 'Invalid username or password.' };
   }
@@ -67,7 +63,6 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
   }
 
   const stmt = db.prepare('SELECT id, username FROM admins WHERE sessionToken = ?');
-  // AdminUser type doesn't include password, so this is fine
   const admin = stmt.get(token) as AdminUser | undefined;
 
   return admin || null;

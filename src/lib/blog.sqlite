@@ -1,4 +1,4 @@
 -- database: ./blog.sqlite
 
 SELECT * FROM admins
-ORDER BY `Password` DESC;
+ORDER BY `Pwd` DESC;
