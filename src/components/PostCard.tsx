@@ -8,28 +8,25 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 
 interface PostCardProps {
   post: Post;
+  isAdmin: boolean; // Added isAdmin prop
 }
 
 function generateExcerpt(content: string, maxLength: number = 100) {
-  // Basic excerpt, doesn't break words mid-way intelligently
   const trimmedContent = content.trim();
   if (trimmedContent.length <= maxLength) {
     return trimmedContent;
   }
-  // Find the last space within the maxLength
   const sub = trimmedContent.substring(0, maxLength);
   const lastSpace = sub.lastIndexOf(' ');
   if (lastSpace > 0) {
     return sub.substring(0, lastSpace).trimEnd() + "...";
   }
-  // If no space found, just cut at maxLength (less ideal)
   return sub.trimEnd() + "...";
 }
 
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, isAdmin }: PostCardProps) {
   const excerpt = generateExcerpt(post.content);
-  const isAdminMode = process.env.NEXT_PUBLIC_ADMIN_MODE === 'true';
 
   return (
     <Card className="overflow-hidden shadow-lg hover:shadow-[0_0_15px_5px_hsl(var(--primary))] active:shadow-[0_0_15px_5px_hsl(var(--primary))] transition-shadow duration-300">
@@ -55,7 +52,7 @@ export function PostCard({ post }: PostCardProps) {
             View Post
           </Link>
         </Button>
-        {isAdminMode && <DeleteConfirmationDialog post={post} data-admin-visibility="true" />}
+        {isAdmin && <DeleteConfirmationDialog post={post} data-admin-visibility="true" />}
       </CardFooter>
     </Card>
   );

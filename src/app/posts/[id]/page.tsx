@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
 import ReactMarkdown from 'react-markdown';
+import { getCurrentAdmin } from '@/lib/authActions';
+import type { AdminUser } from '@/lib/authActions';
 
 interface PostPageProps {
   params: {
@@ -17,7 +19,7 @@ interface PostPageProps {
 
 export default async function PostPage({ params }: PostPageProps) {
   const post = await getPostById(params.id);
-  const isAdminMode = process.env.NEXT_PUBLIC_ADMIN_MODE === 'true';
+  const admin: AdminUser | null = await getCurrentAdmin();
 
   if (!post) {
     notFound();
@@ -46,15 +48,13 @@ export default async function PostPage({ params }: PostPageProps) {
                   day: 'numeric',
                 })}
               </CardDescription>
-              {isAdminMode && <DeleteConfirmationDialog post={post} data-admin-visibility="true" />}
+              {admin && <DeleteConfirmationDialog post={post} data-admin-visibility="true" />}
             </div>
           </CardHeader>
           <CardContent>
             <article className="prose prose-lg max-w-none text-foreground/90 leading-relaxed">
               <ReactMarkdown
                 components={{
-                  // You can customize rendering of specific elements here if needed
-                  // For example, to open links in a new tab:
                   a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />,
                 }}
               >

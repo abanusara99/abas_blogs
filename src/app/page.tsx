@@ -1,10 +1,14 @@
+
 import { Header } from '@/components/Header';
 import { PostCard } from '@/components/PostCard';
 import { getPosts } from '@/lib/actions';
 import type { Post } from '@/types';
+import { getCurrentAdmin } from '@/lib/authActions';
+import type { AdminUser } from '@/lib/authActions';
 
 export default async function HomePage() {
   const posts: Post[] = await getPosts();
+  const admin: AdminUser | null = await getCurrentAdmin();
 
   return (
     <>
@@ -16,7 +20,7 @@ export default async function HomePage() {
         ) : (
           <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2">
             {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard key={post.id} post={post} isAdmin={!!admin} />
             ))}
           </div>
         )}

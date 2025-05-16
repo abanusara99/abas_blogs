@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { Post } from "@/types";
-import { db } from "./db"; // Import the SQLite database instance
+import { db } from "./db";
+import { getCurrentAdmin } from "./authActions"; // Import auth function
 
 export async function getPosts(): Promise<Post[]> {
   const stmt = db.prepare('SELECT * FROM posts ORDER BY createdAt DESC');
@@ -34,6 +35,11 @@ const PostSchema = z.object({
 });
 
 export async function createPost(formData: FormData) {
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    throw new Error("Unauthorized: You must be logged in as an admin to create posts.");
+  }
+
   const validatedFields = PostSchema.safeParse({
     title: formData.get("title"),
     content: formData.get("content"),
@@ -45,7 +51,7 @@ export async function createPost(formData: FormData) {
   }
 
   const { title, content } = validatedFields.data;
-  const newPostId = String(Date.now()); // Simple ID generation
+  const newPostId = String(Date.now()); 
   const createdAt = new Date().toISOString();
 
   try {
@@ -53,9 +59,6 @@ export async function createPost(formData: FormData) {
     stmt.run(newPostId, title, content, createdAt);
   } catch (dbError) {
     console.error("Database error in createPost:", dbError);
-    // Depending on how you want to handle this, you could throw a more specific error
-    // or return a result object like in deletePost.
-    // For now, re-throwing a generic error to indicate failure.
     throw new Error("A database error occurred while creating the post.");
   }
 
@@ -65,6 +68,11 @@ export async function createPost(formData: FormData) {
 }
 
 export async function deletePost(id: string): Promise<{ success: boolean; message?: string }> {
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    return { success: false, message: "Unauthorized: You must be logged in as an admin to delete posts." };
+  }
+
   try {
     const stmt = db.prepare('DELETE FROM posts WHERE id = ?');
     const result = stmt.run(id);
@@ -74,6 +82,7 @@ export async function deletePost(id: string): Promise<{ success: boolean; messag
     }
 
     revalidatePath("/");
+    // Note: revalidatePath(`/posts/${id}`) might be needed if you could go back to a cached deleted page
     return { success: true };
   } catch (dbError) {
     console.error("Database error in deletePost:", dbError);
