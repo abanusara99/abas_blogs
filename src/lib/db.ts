@@ -1,6 +1,5 @@
 
-// @ts-ignore
-import OriginalDatabase from 'better-sqlite3'; // Renamed to avoid conflict with exported 'db'
+import BetterSqlite3, { type Database as BetterSqlite3DatabaseInstance } from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import type { Post } from '@/types';
@@ -9,6 +8,7 @@ import { posts as initialPostsData } from './data';
 const dbDir = path.join(process.cwd(), 'src', 'lib');
 console.log(`[DB] Target directory for database: ${dbDir}`);
 
+// Ensure dbDir exists
 if (!fs.existsSync(dbDir)) {
   console.log(`[DB] Creating directory: ${dbDir}`);
   try {
@@ -25,20 +25,29 @@ if (!fs.existsSync(dbDir)) {
 const dbPath = path.join(dbDir, 'blog.sqlite');
 console.log(`[DB] Full path to database file: ${dbPath}`);
 
-let dbInstance: OriginalDatabase.Database;
+let dbInstance: BetterSqlite3DatabaseInstance;
 
 try {
+  if (fs.existsSync(dbPath)) {
+    const stats = fs.statSync(dbPath);
+    console.log(`[DB] Database file ${dbPath} already exists. Size: ${stats.size} bytes.`);
+    if (stats.size === 0) {
+      console.warn(`[DB] WARNING: Database file ${dbPath} exists but is 0 bytes. Attempting to delete it.`);
+      try {
+        fs.unlinkSync(dbPath);
+        console.log(`[DB] Successfully deleted 0-byte file: ${dbPath}`);
+      } catch (unlinkError) {
+        console.error(`[DB] ERROR: Failed to delete 0-byte file ${dbPath}. Error:`, unlinkError);
+      }
+    }
+  } else {
+    console.log(`[DB] Database file ${dbPath} does not exist. It will be created by better-sqlite3.`);
+  }
+
   console.log(`[DB] Attempting to initialize database instance for: ${dbPath}`);
-  // Add verbose logging to better-sqlite3 constructor
-  dbInstance = new OriginalDatabase(dbPath, { verbose: console.log });
+  dbInstance = new BetterSqlite3(dbPath, { verbose: console.log });
   console.log(`[DB] Database instance created successfully for: ${dbPath}. Open: ${dbInstance.open}`);
-} catch (error) {
-  console.error(`[DB] FATAL: Error creating Database instance for ${dbPath}:`, error);
-  // If the constructor throws, dbInstance might not be valid.
-  throw error; 
-}
 
-try {
   console.log('[DB] Ensuring "posts" table schema...');
   dbInstance.exec(`
     CREATE TABLE IF NOT EXISTS posts (
@@ -50,7 +59,7 @@ try {
   `);
   console.log('[DB] "posts" table schema ensured.');
 
-  console.log('[DB] Ensuring "admins" table schema...');
+  console.log('[DB] Ensuring "admins" table schema for plain text passwords...');
   dbInstance.exec(`
     CREATE TABLE IF NOT EXISTS admins (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,9 +68,8 @@ try {
       sessionToken TEXT
     );
   `);
-  console.log('[DB] "admins" table schema ensured.');
+  console.log('[DB] "admins" table schema ensured for plain text passwords.');
 
-  // Seed initial posts data if the table is empty
   const countPostsStmt = dbInstance.prepare('SELECT COUNT(*) as count FROM posts');
   const { count: postCount } = countPostsStmt.get() as { count: number };
   console.log(`[DB] Current post count: ${postCount}`);
@@ -77,29 +85,32 @@ try {
     console.log('[DB] Database seeded with initial posts.');
   }
 
-  // Seed initial admin user if the table is empty
   const countAdminsStmt = dbInstance.prepare('SELECT COUNT(*) as count FROM admins');
   const { count: adminCount } = countAdminsStmt.get() as { count: number };
   console.log(`[DB] Current admin count: ${adminCount}`);
 
   if (adminCount === 0) {
     const defaultUsername = 'admin';
-    const defaultPassword = '&82Tinabsa'; // Storing plain text password (INSECURE)
-    console.log(`[DB] Seeding default admin user: ${defaultUsername}`);
+    const defaultPassword = '&82Tinabsa'; 
+    console.log(`[DB] Seeding default admin user: ${defaultUsername} with plain text password.`);
     
     const insertAdminStmt = dbInstance.prepare('INSERT INTO admins (username, password) VALUES (?, ?)');
     insertAdminStmt.run(defaultUsername, defaultPassword);
     console.log(`[DB] Database seeded with default admin user (username: ${defaultUsername} / password: ${defaultPassword}). WARNING: Password stored in plain text!`);
   }
-  console.log('[DB] Database initialization and seeding complete for: ${dbPath}');
+  console.log(`[DB] Database initialization and seeding complete for: ${dbPath}`);
 
 } catch (error) {
-  console.error(`[DB] FATAL: Error during table creation or seeding for ${dbPath}:`, error);
+  console.error(`[DB] FATAL: Error during database initialization for ${dbPath}:`, error);
   if (dbInstance && dbInstance.open) {
-    dbInstance.close(); // Attempt to close the DB if an error occurs after opening
-    console.log('[DB] Database connection closed due to error during setup.');
+    try {
+      dbInstance.close();
+      console.log('[DB] Database connection closed due to error during setup.');
+    } catch (closeError) {
+      console.error('[DB] Error closing database connection after initial error:', closeError);
+    }
   }
-  throw error; 
+  throw new Error(`Database initialization failed. Check console for [DB] logs. Original error: ${(error as Error).message}`);
 }
 
-export const db = dbInstance;
+export const db: BetterSqlite3DatabaseInstance = dbInstance;
