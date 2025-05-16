@@ -34,7 +34,7 @@ export default async function PostPage({ params }: PostPageProps) {
             </Link>
           </Button>
         </div>
-        <Card className="shadow-xl animate-in fade-in-0 duration-500">
+        <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="text-4xl font-bold leading-tight">{post.title}</CardTitle>
             <div className="flex justify-between items-center">
@@ -66,3 +66,4 @@ export default async function PostPage({ params }: PostPageProps) {
     </>
   );
 }
+
