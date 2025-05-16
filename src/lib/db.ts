@@ -18,8 +18,8 @@ if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
     console.log(`[DB] Directory ${dbDir} created successfully.`);
   } catch (err) {
-    console.error(`[DB] FATAL: Failed to create directory ${dbDir}:`, err);
-    // If we can't even create the directory, something is seriously wrong with permissions/environment.
+    console.error(`[DB] FATAL: Failed to create database directory ${dbDir}:`, err);
+    // It's critical, so rethrow
     throw new Error(`Failed to create database directory: ${(err as Error).message}`);
   }
 } else {
@@ -36,8 +36,6 @@ try {
   if (fs.existsSync(dbPath)) {
     const stats = fs.statSync(dbPath);
     console.log(`[DB] Database file ${dbPath} already exists. Size: ${stats.size} bytes.`);
-    // If a file exists but is 0 bytes, it's often a sign of a previously failed initialization.
-    // better-sqlite3 might interpret this as "file is not a database".
     if (stats.size === 0) {
       console.warn(`[DB] WARNING: Database file ${dbPath} exists but is 0 bytes. Attempting to delete it.`);
       try {
@@ -45,11 +43,9 @@ try {
         console.log(`[DB] Successfully deleted 0-byte file: ${dbPath}`);
       } catch (unlinkError) {
         console.error(`[DB] ERROR: Failed to delete 0-byte file ${dbPath}. Error:`, unlinkError);
-        // Proceeding, but this might be the source of the problem if deletion fails and a 0-byte file remains.
+        // Continue, as better-sqlite3 might handle it or fail with a clearer message.
       }
     }
-    // If it exists and is not 0 bytes, it might be corrupted.
-    // We will let better-sqlite3 attempt to open it and report if it's not a valid database.
   } else {
     console.log(`[DB] Database file ${dbPath} does not exist. It will be created by better-sqlite3.`);
   }
@@ -61,35 +57,31 @@ try {
 try {
   console.log(`[DB] Attempting to initialize database instance for: ${dbPath}`);
   try {
-    // Explicitly tell better-sqlite3 it's okay if the file doesn't exist (it will create it).
-    // verbose: console.log can be helpful for debugging better-sqlite3 internal operations.
-    dbInstance = new BetterSqlite3(dbPath, { verbose: console.log, fileMustExist: false });
+    // fileMustExist: false is default, but being explicit. No verbose logging.
+    dbInstance = new BetterSqlite3(dbPath, { fileMustExist: false });
   } catch (instantiationError) {
     console.error('[DB] FATAL: Error during `new BetterSqlite3()` instantiation:', instantiationError);
-    // This is a critical point. If this fails, the path might be wrong, permissions, or native module issue.
-    throw instantiationError; // Re-throw to be caught by outer handler
+    console.error('[DB] Instantiation Error Stack:', (instantiationError as Error).stack);
+    throw instantiationError; // Rethrow to be caught by the outer catch
   }
 
   console.log(`[DB] Database instance nominally created. Open status from instance: ${dbInstance.open}`);
 
   if (!dbInstance || !dbInstance.open) {
-    // This case should ideally be caught by the instantiationError above.
     console.error('[DB] FATAL: Database instance was not created or is not open immediately after `new BetterSqlite3()`.');
     throw new Error('DB_INIT_FAILURE: Database instance could not be opened or was not returned by constructor.');
   }
 
-  // First actual operation on the DB. If this fails, the file handle might be bad or the file isn't a DB.
   try {
     console.log('[DB] Attempting to set PRAGMA journal_mode = WAL.');
-    dbInstance.pragma('journal_mode = WAL'); // This simple PRAGMA can also fail if the DB isn't valid.
+    dbInstance.pragma('journal_mode = WAL');
     console.log('[DB] Successfully executed PRAGMA journal_mode.');
   } catch (pragmaError) {
     console.error('[DB] FATAL: Error executing PRAGMA journal_mode:', pragmaError);
-    // This often indicates the file isn't a valid DB if it happens here.
-    throw pragmaError; // Re-throw
+    console.error('[DB] PRAGMA Error Stack:', (pragmaError as Error).stack);
+    throw pragmaError; // Rethrow
   }
 
-  // Create posts table
   try {
     console.log('[DB] Ensuring "posts" table schema...');
     dbInstance.exec(`
@@ -103,24 +95,25 @@ try {
     console.log('[DB] "posts" table schema ensured.');
   } catch (postsTableError) {
     console.error('[DB] FATAL: Error creating "posts" table:', postsTableError);
-    throw postsTableError;
+    console.error('[DB] Posts Table Error Stack:', (postsTableError as Error).stack);
+    throw postsTableError; // Rethrow
   }
 
-  // Create admins table (for plain text passwords, per user request)
   try {
     console.log('[DB] Ensuring "admins" table schema for plain text passwords...');
     dbInstance.exec(`
       CREATE TABLE IF NOT EXISTS admins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL, -- Storing plain text password (INSECURE - for prototype only)
+        password TEXT NOT NULL, -- Storing plain text password (INSECURE)
         sessionToken TEXT
       );
     `);
     console.log('[DB] "admins" table schema ensured for plain text passwords.');
   } catch (adminsTableError) {
     console.error('[DB] FATAL: Error creating "admins" table:', adminsTableError);
-    throw adminsTableError;
+    console.error('[DB] Admins Table Error Stack:', (adminsTableError as Error).stack);
+    throw adminsTableError; // Rethrow
   }
 
   // Seeding data
@@ -157,7 +150,9 @@ try {
 
 } catch (error) {
   const err = error as Error;
-  console.error(`[DB] FATAL: Error during database initialization process for ${dbPath}:`, err);
+  console.error(`[DB] FATAL: Error during database initialization process for ${dbPath}:`, err.message);
+  console.error(`[DB] Full error stack:`, err.stack); // Log the full stack
+  
   if (dbInstance && dbInstance.open) {
     try {
       dbInstance.close();
@@ -166,12 +161,13 @@ try {
       console.error('[DB] Error closing database connection after initial error:', closeError);
     }
   }
-  // Consolidate error message construction
+  
   let originalErrorMessage = err.message;
+  // Simplify the original error message if it's a known SqliteError
   if (err.name === 'SqliteError' && err.message.includes('file is not a database')) {
     originalErrorMessage = 'SqliteError: file is not a database';
   } else if (err.message.startsWith('DB_INIT_FAILURE:')) {
-     originalErrorMessage = err.message; // Preserve specific DB_INIT_FAILURE messages
+     originalErrorMessage = err.message; 
   }
   
   // This is the error the user is seeing.
