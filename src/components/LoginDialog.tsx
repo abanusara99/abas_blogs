@@ -16,14 +16,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login } from "@/lib/authActions";
 import { useToast } from "@/hooks/use-toast";
-import { User, Eye, EyeOff } from "lucide-react"; // Changed LogIn to User
+import { User, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function LoginDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // State for password visibility
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -46,8 +46,7 @@ export function LoginDialog() {
         setIsOpen(false);
         setUsername("");
         setPassword("");
-        setShowPassword(false); // Reset password visibility on successful login
-        // router.refresh() is handled by revalidatePath in the server action
+        setShowPassword(false);
       } else {
         setError(result.error || "An unknown error occurred.");
         toast({
@@ -66,7 +65,7 @@ export function LoginDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       setIsOpen(open);
-      if (!open) { // Reset form on dialog close
+      if (!open) { 
         setUsername("");
         setPassword("");
         setShowPassword(false);
@@ -75,7 +74,8 @@ export function LoginDialog() {
     }}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <User className="mr-2 h-4 w-4" /> Login {/* Changed LogIn to User */}
+          <User className="h-4 w-4 sm:mr-2" /> {/* Conditionally apply margin */}
+          <span className="hidden sm:inline">Login</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
@@ -111,7 +111,7 @@ export function LoginDialog() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10" // Add padding to the right for the icon
+                  className="pr-10"
                   disabled={isPending}
                   required
                   autoComplete="current-password"

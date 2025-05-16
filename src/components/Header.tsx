@@ -1,6 +1,6 @@
 
 import Link from 'next/link';
-import { PlusCircle, Info, LogOut } from 'lucide-react';
+import { PlusCircle, Info, LogOut, User } from 'lucide-react'; // Added User for consistency if needed, though LoginDialog handles its own icon
 import { Button } from '@/components/ui/button';
 import { getCurrentAdmin, logout } from '@/lib/authActions';
 import type { AdminUser } from '@/lib/authActions';
@@ -20,8 +20,8 @@ export async function Header() {
         <div className="col-span-1 flex justify-start">
           <Button asChild variant="destructive" size="sm">
             <Link href="https://anuportfoliovisit.vercel.app/" target="_blank" rel="noopener noreferrer">
-              <Info className="mr-2 h-4 w-4" />
-              About
+              <Info className="h-4 w-4 sm:mr-2" /> {/* Conditionally apply margin */}
+              <span className="hidden sm:inline">About</span>
             </Link>
           </Button>
         </div>
@@ -31,16 +31,17 @@ export async function Header() {
         <div className="col-span-1 flex justify-end items-center space-x-2">
           {admin ? (
             <>
-              <span className="text-sm text-muted-foreground hidden sm:inline">Hi, {admin.username}</span>
+              <span className="text-sm text-muted-foreground hidden md:inline">Hi, {admin.username}</span> {/* Show username on md+ */}
               <Button asChild variant="default" data-admin-visibility="true">
                 <Link href="/posts/create">
-                  <PlusCircle className="mr-2 h-5 w-5" />
-                  Create Post
+                  <PlusCircle className="h-5 w-5 sm:mr-2" /> {/* Conditionally apply margin */}
+                  <span className="hidden sm:inline">Create Post</span>
                 </Link>
               </Button>
               <form action={handleLogout}>
                 <Button type="submit" variant="outline" size="sm">
-                  <LogOut className="mr-2 h-4 w-4" /> Logout
+                  <LogOut className="h-4 w-4 sm:mr-2" /> {/* Conditionally apply margin */}
+                  <span className="hidden sm:inline">Logout</span>
                 </Button>
               </form>
             </>
