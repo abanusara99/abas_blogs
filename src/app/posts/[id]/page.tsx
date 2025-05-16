@@ -1,3 +1,4 @@
+
 import { Header } from '@/components/Header';
 import { getPostById } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DeleteConfirmationDialog } from '@/components/DeleteConfirmationDialog';
+import ReactMarkdown from 'react-markdown';
 
 interface PostPageProps {
   params: {
@@ -47,12 +49,17 @@ export default async function PostPage({ params }: PostPageProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="prose prose-lg max-w-none text-foreground/90 leading-relaxed">
-              {/* Basic rendering of content. For Markdown, use a library like react-markdown */}
-              {post.content.split('\\n').map((paragraph, index) => (
-                <p key={index} className="mb-4 last:mb-0">{paragraph}</p>
-              ))}
-            </div>
+            <article className="prose prose-lg max-w-none text-foreground/90 leading-relaxed">
+              <ReactMarkdown
+                components={{
+                  // You can customize rendering of specific elements here if needed
+                  // For example, to open links in a new tab:
+                  a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+                }}
+              >
+                {post.content}
+              </ReactMarkdown>
+            </article>
           </CardContent>
         </Card>
       </div>
