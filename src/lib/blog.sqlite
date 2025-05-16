@@ -1,4 +1,0 @@
--- database: ./blog.sqlite
-
-SELECT * FROM admins
-ORDER BY `Pwd` DESC;
