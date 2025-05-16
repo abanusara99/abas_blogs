@@ -47,6 +47,7 @@ export function LoginDialog() {
         setUsername("");
         setPassword("");
         setShowPassword(false);
+        router.refresh(); // Refresh the current route to update server components
       } else {
         setError(result.error || "An unknown error occurred.");
         toast({
