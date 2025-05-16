@@ -2,7 +2,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import crypto from 'crypto';
+import crypto from 'crypto'; // Still used for session token generation
 import { db } from './db';
 import { revalidatePath } from 'next/cache';
 
@@ -11,35 +11,25 @@ const SESSION_COOKIE_NAME = 'session_token';
 export interface AdminUser {
   id: number;
   username: string;
+  // password is not exposed in AdminUser interface
 }
 
-function hashPassword(password: string, salt: string): string {
-  return crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
-}
-
-function verifyPassword(storedHash: string, salt: string, providedPassword: string): boolean {
-  const hashOfProvidedPassword = hashPassword(providedPassword, salt);
-  // Use timingSafeEqual to prevent timing attacks
-  try {
-    return crypto.timingSafeEqual(Buffer.from(storedHash, 'hex'), Buffer.from(hashOfProvidedPassword, 'hex'));
-  } catch {
-    // Handle cases where buffer lengths might not match, though they should if hashes are same length
-    return false;
-  }
-}
+// Removed hashPassword and verifyPassword functions as they are no longer used
 
 export async function login(formData: FormData): Promise<{ success: boolean; error?: string }> {
   const username = formData.get('username') as string;
-  const password = formData.get('password') as string;
+  const providedPassword = formData.get('password') as string; // Renamed for clarity
 
-  if (!username || !password) {
+  if (!username || !providedPassword) {
     return { success: false, error: 'Username and password are required.' };
   }
 
-  const stmt = db.prepare('SELECT id, hashedPassword, salt FROM admins WHERE username = ?');
-  const admin = stmt.get(username) as { id: number; hashedPassword: string; salt: string } | undefined;
+  // Changed: Select plain text password, no salt
+  const stmt = db.prepare('SELECT id, password FROM admins WHERE username = ?');
+  const admin = stmt.get(username) as { id: number; password: string } | undefined;
 
-  if (!admin || !verifyPassword(admin.hashedPassword, admin.salt, password)) {
+  // Changed: Direct password comparison (INSECURE)
+  if (!admin || admin.password !== providedPassword) {
     return { success: false, error: 'Invalid username or password.' };
   }
 
@@ -55,7 +45,7 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
     sameSite: 'lax',
   });
 
-  revalidatePath('/', 'layout'); // Revalidate all paths to update UI based on login state
+  revalidatePath('/', 'layout');
   return { success: true };
 }
 
@@ -77,6 +67,7 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
   }
 
   const stmt = db.prepare('SELECT id, username FROM admins WHERE sessionToken = ?');
+  // AdminUser type doesn't include password, so this is fine
   const admin = stmt.get(token) as AdminUser | undefined;
 
   return admin || null;
