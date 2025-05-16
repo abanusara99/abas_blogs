@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 
 export function Header() {
   return (
-    <header className="py-6 mb-8 border-b border-border shadow-sm">
+    <header className="sticky top-0 z-50 py-6 mb-8 bg-background/75 backdrop-blur-lg border-b border-border/50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-3 items-center">
         <div className="col-span-1 flex justify-start">
           <Button asChild variant="destructive" size="sm">
