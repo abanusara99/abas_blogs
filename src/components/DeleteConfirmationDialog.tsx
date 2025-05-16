@@ -17,6 +17,7 @@ import { Trash2 } from "lucide-react";
 import { deletePost } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useTransition } from "react";
+import { redirect } from 'next/navigation';
 
 interface DeleteConfirmationDialogProps {
   post: Post;
@@ -27,6 +28,7 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const handleDelete = async () => {
     startTransition(async () => {
@@ -38,7 +40,14 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
             description: `"${post.title}" has been successfully deleted.`,
           });
           setIsOpen(false);
-          if (onDeleted) onDeleted();
+          if (onDeleted) {
+            onDeleted();
+          } else {
+            // If onDeleted is not provided, it might be on the post detail page
+            // We need to redirect to home after deletion.
+            setIsRedirecting(true); 
+            // The actual redirect will happen in a useEffect based on isRedirecting
+          }
         } else {
           toast({
             title: "Error",
@@ -55,6 +64,13 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
       }
     });
   };
+
+  // Effect for redirection, to ensure it happens after state updates
+  React.useEffect(() => {
+    if (isRedirecting) {
+      redirect('/');
+    }
+  }, [isRedirecting]);
 
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
@@ -76,7 +92,7 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isPending}
-            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            className="bg-blue-700 hover:bg-blue-800 text-white"
           >
             {isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>
