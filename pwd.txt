@@ -1,0 +1,49 @@
+
+# ABASBlogs Admin Password Information
+
+## Default Admin Credentials
+
+*   **Username:** `admin`
+*   **Password:** `&82Tinabsa`
+
+## How the Password Works in This Prototype
+
+Currently, for this prototype and based on your specific requests, the password `&82Tinabsa` is stored **directly as plain text** in the `password` column of the `admins` table within the `posts.sqlite` database file.
+
+You should log in using the username `admin` and the password `&82Tinabsa`.
+
+**IMPORTANT SECURITY NOTE:** Storing passwords as plain text is **highly insecure** and is **NOT recommended for any real or production application**. This has been done here to address specific troubleshooting requests. In a production environment, passwords should always be securely hashed.
+
+## If You Still Experience Login Issues or "File is not a database" Errors:
+
+This error means the application cannot correctly create or read the `posts.sqlite` database file. If this happens, the password (whether plain text or hashed) cannot be stored or checked, and login will fail.
+
+To resolve this, please **VERY CAREFULLY** follow these steps:
+
+1.  **STOP** your Next.js development server (e.g., `npm run dev`).
+2.  **DELETE any existing `.sqlite` files** from the `src/lib/` directory. This includes:
+    *   `src/lib/posts.sqlite` (the new file we are trying to create)
+    *   `src/lib/blog.sqlite` (the old file, if it still exists)
+3.  **(CRITICAL STEP - DO NOT SKIP if errors persist)**
+    *   Delete the `node_modules` folder in your project.
+    *   Delete the `package-lock.json` file (or `yarn.lock` if you use Yarn).
+    *   Open your terminal in the project root and run `npm install` (or `yarn install`).
+    *   **CAREFULLY WATCH THE OUTPUT of `npm install`**. Look for any errors or warnings, especially related to `better-sqlite3`, `node-gyp`, Python, or C++ compilation. If `better-sqlite3` (which is a native module) does not compile and install correctly for your environment, it CANNOT work, and you will continue to see database errors.
+4.  **RESTART** your Next.js development server (`npm run dev`).
+
+The application is designed to create a fresh `posts.sqlite` file with the `admin` user and the plain text password `&82Tinabsa` if the file doesn't exist and `better-sqlite3` is working correctly in your environment.
+
+## How to Query the Admins Table (Once the Database is Working):
+
+If you open `src/lib/posts.sqlite` in an SQLite editor, you can see the admin users with a query like:
+
+```sql
+SELECT id, username, password FROM admins;
+```
+
+Or, to order by the password:
+
+```sql
+SELECT id, username, password FROM admins ORDER BY password DESC;
+```
+You should see the plain text password `&82Tinabsa` in the `password` column for the `admin` user.

@@ -1,6 +1,4 @@
 
-'use server';
-
 import BetterSqlite3, { type Database as BetterSqlite3DatabaseInstance } from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -9,7 +7,7 @@ import { posts as initialPostsData } from './data';
 
 const projectRoot = process.cwd();
 const dbDir = path.join(projectRoot, 'src', 'lib');
-const dbPath = path.join(dbDir, 'blog.sqlite');
+const dbPath = path.join(dbDir, 'posts.sqlite'); // CHANGED FILENAME
 
 let dbInstance: BetterSqlite3DatabaseInstance;
 
@@ -31,7 +29,7 @@ try {
     console.log(`[DB] Directory ${dbDir} already exists.`);
   }
 
-  // Step 2: Check for and attempt to delete a 0-byte database file
+  // Step 2: Check for and attempt to delete a 0-byte or problematic database file
   if (fs.existsSync(dbPath)) {
     console.log(`[DB] File ${dbPath} exists. Checking its size.`);
     const stats = fs.statSync(dbPath);
@@ -54,14 +52,13 @@ try {
   // Step 3: Instantiate BetterSqlite3
   try {
     console.log('[DB] Attempting to instantiate BetterSqlite3...');
-    // Using fileMustExist: false is default, but explicit for clarity that it should create if not exists.
+    // Removed verbose: console.log for cleaner instantiation
     dbInstance = new BetterSqlite3(dbPath, { fileMustExist: false }); 
     console.log('[DB] BetterSqlite3 instance created.');
     if (dbInstance && dbInstance.open) {
       console.log('[DB] Database connection is reported as OPEN by better-sqlite3.');
     } else {
       console.warn('[DB] WARNING: BetterSqlite3 instance created, but connection is NOT reported as open.');
-      // This state might lead to subsequent errors.
       throw new Error('BetterSqlite3 instance not open after creation.');
     }
   } catch (instantiationError: any) {
@@ -70,7 +67,7 @@ try {
     console.error(`[DB] Instantiation Error Code: ${instantiationError.code || 'N/A'}`);
     console.error(`[DB] Instantiation Error Message: ${instantiationError.message}`);
     console.error(`[DB] Instantiation Full Stack:`, instantiationError.stack);
-    throw instantiationError; // Re-throw to be caught by the outer catch block
+    throw instantiationError;
   }
 
   // Step 4: Set PRAGMA journal_mode
@@ -79,62 +76,50 @@ try {
     dbInstance.pragma('journal_mode = WAL');
     console.log('[DB] PRAGMA journal_mode = WAL set successfully.');
   } catch (pragmaError: any) {
-    console.error(`[DB] FATAL ERROR SETTING PRAGMA journal_mode for ${dbPath}.`);
-    console.error(`[DB] PRAGMA Error Type: ${pragmaError.name}`);
-    console.error(`[DB] PRAGMA Error Code: ${pragmaError.code || 'N/A'}`);
-    console.error(`[DB] PRAGMA Error Message: ${pragmaError.message}`);
-    console.error(`[DB] PRAGMA Full Stack:`, pragmaError.stack);
+    console.error(`[DB] FATAL ERROR SETTING PRAGMA journal_mode for ${dbPath}. Error: ${pragmaError.message}`, pragmaError.stack);
     if (dbInstance && dbInstance.open) {
       try { dbInstance.close(); console.log('[DB] Closed DB connection after PRAGMA error.'); }
       catch (closeErr: any) { console.error('[DB] Error closing DB after PRAGMA error:', closeErr.message); }
     }
-    throw pragmaError; // Re-throw
+    throw pragmaError;
   }
 
-  // Step 5: Create admins table
+  // Step 5: Create admins table (with plain text password)
   try {
-    console.log('[DB] Attempting to ensure "admins" table schema...');
+    console.log('[DB] Attempting to ensure "admins" table schema (with plain text password)...');
     dbInstance.exec(`
       CREATE TABLE IF NOT EXISTS admins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL 
+        password TEXT NOT NULL, -- Storing password as plain text (INSECURE)
+        sessionToken TEXT 
       );
-    `); // Plain text password
+    `);
     console.log('[DB] "admins" table schema ensured successfully.');
   } catch (adminTableError: any) {
-    console.error(`[DB] FATAL ERROR CREATING "admins" TABLE for ${dbPath}.`);
-    console.error(`[DB] Admin Table Error Type: ${adminTableError.name}`);
-    console.error(`[DB] Admin Table Error Code: ${adminTableError.code || 'N/A'}`);
-    console.error(`[DB] Admin Table Error Message: ${adminTableError.message}`);
-    console.error(`[DB] Admin Table Full Stack:`, adminTableError.stack);
+    console.error(`[DB] FATAL ERROR CREATING "admins" TABLE for ${dbPath}. Error: ${adminTableError.message}`, adminTableError.stack);
     if (dbInstance && dbInstance.open) {
       try { dbInstance.close(); console.log('[DB] Closed DB connection after admin table error.'); }
       catch (closeErr: any) { console.error('[DB] Error closing DB after admin table error:', closeErr.message); }
     }
-    throw adminTableError; // Re-throw
+    throw adminTableError;
   }
   
   // Step 6: Seed default admin if table is empty
   const countAdminsStmt = dbInstance.prepare('SELECT COUNT(*) as count FROM admins');
-  const adminRow = countAdminsStmt.get() as { count: number } | undefined; // Added undefined check
-  const adminCount = adminRow ? adminRow.count : 0; // Handle if adminRow is undefined
+  const adminRow = countAdminsStmt.get() as { count: number } | undefined;
+  const adminCount = adminRow ? adminRow.count : 0;
 
   if (adminCount === 0) {
     const defaultUsername = 'admin';
     const defaultPassword = '&82Tinabsa'; // Plain text password
-    console.log(`[DB] "admins" table is empty. Seeding default admin user: ${defaultUsername} with plain text password.`);
+    console.log(`[DB] "admins" table is empty. Seeding default admin user: ${defaultUsername} with plain text password: ${defaultPassword}.`);
     try {
       const insertAdminStmt = dbInstance.prepare('INSERT INTO admins (username, password) VALUES (?, ?)');
       insertAdminStmt.run(defaultUsername, defaultPassword);
-      console.log('[DB] Default admin user seeded successfully.');
+      console.log('[DB] Default admin user seeded successfully with plain text password.');
     } catch (adminSeedError: any) {
-        console.error(`[DB] ERROR SEEDING default admin user for ${dbPath}.`);
-        console.error(`[DB] Admin Seed Error Type: ${adminSeedError.name}`);
-        console.error(`[DB] Admin Seed Error Code: ${adminSeedError.code || 'N/A'}`);
-        console.error(`[DB] Admin Seed Error Message: ${adminSeedError.message}`);
-        console.error(`[DB] Admin Seed Full Stack:`, adminSeedError.stack);
-        // Don't re-throw, allow app to continue if possible, but log severity
+        console.error(`[DB] ERROR SEEDING default admin user for ${dbPath}. Error: ${adminSeedError.message}`, adminSeedError.stack);
     }
   } else {
     console.log(`[DB] Admin users already exist (count: ${adminCount}), skipping default admin seed.`);
@@ -153,22 +138,18 @@ try {
     `);
     console.log('[DB] "posts" table schema ensured successfully.');
   } catch (postsTableError: any) {
-    console.error(`[DB] FATAL ERROR CREATING "posts" TABLE for ${dbPath}.`);
-    console.error(`[DB] Posts Table Error Type: ${postsTableError.name}`);
-    console.error(`[DB] Posts Table Error Code: ${postsTableError.code || 'N/A'}`);
-    console.error(`[DB] Posts Table Error Message: ${postsTableError.message}`);
-    console.error(`[DB] Posts Table Full Stack:`, postsTableError.stack);
+    console.error(`[DB] FATAL ERROR CREATING "posts" TABLE for ${dbPath}. Error: ${postsTableError.message}`, postsTableError.stack);
     if (dbInstance && dbInstance.open) {
       try { dbInstance.close(); console.log('[DB] Closed DB connection after posts table error.'); }
       catch (closeErr: any) { console.error('[DB] Error closing DB after posts table error:', closeErr.message); }
     }
-    throw postsTableError; // Re-throw
+    throw postsTableError;
   }
 
   // Step 8: Seed initial posts if table is empty
   const countPostsStmt = dbInstance.prepare('SELECT COUNT(*) as count FROM posts');
-  const postRow = countPostsStmt.get() as { count: number } | undefined; // Added undefined check
-  const postCount = postRow ? postRow.count : 0; // Handle if postRow is undefined
+  const postRow = countPostsStmt.get() as { count: number } | undefined;
+  const postCount = postRow ? postRow.count : 0;
 
   if (postCount === 0) {
     console.log('[DB] "posts" table is empty. Seeding initial posts...');
@@ -181,12 +162,7 @@ try {
         })(initialPostsData);
         console.log(`[DB] Initial posts seeded successfully (${initialPostsData.length} posts).`);
     } catch (postsSeedError: any) {
-        console.error(`[DB] ERROR SEEDING initial posts for ${dbPath}.`);
-        console.error(`[DB] Posts Seed Error Type: ${postsSeedError.name}`);
-        console.error(`[DB] Posts Seed Error Code: ${postsSeedError.code || 'N/A'}`);
-        console.error(`[DB] Posts Seed Error Message: ${postsSeedError.message}`);
-        console.error(`[DB] Posts Seed Full Stack:`, postsSeedError.stack);
-        // Don't re-throw
+        console.error(`[DB] ERROR SEEDING initial posts for ${dbPath}. Error: ${postsSeedError.message}`, postsSeedError.stack);
     }
   } else {
     console.log(`[DB] Posts already exist (count: ${postCount}), skipping initial posts seed.`);
@@ -194,7 +170,7 @@ try {
 
   console.log(`[DB] Database initialization process completed for: ${dbPath}`);
 
-} catch (error: any) { // This is the outer catch block
+} catch (error: any) {
   const originalErrorMessage = error.message || "Unknown error during DB init";
   console.error(`[DB] OVERALL FATAL ERROR during database initialization for ${dbPath}.`);
   console.error(`[DB] Error Type: ${error.name}`);

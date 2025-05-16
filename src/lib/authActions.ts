@@ -3,7 +3,7 @@
 
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
-import { db } from './db';
+import { db } from './db'; // db.ts will provide the instance from posts.sqlite
 import { revalidatePath } from 'next/cache';
 
 const SESSION_COOKIE_NAME = 'session_token';
@@ -29,6 +29,7 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
     return { success: false, error: 'Invalid username or password.' };
   }
 
+  // If login is successful, generate a session token
   const sessionToken = crypto.randomBytes(32).toString('hex');
   const updateTokenStmt = db.prepare('UPDATE admins SET sessionToken = ? WHERE id = ?');
   updateTokenStmt.run(sessionToken, admin.id);
@@ -41,7 +42,7 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
     sameSite: 'lax',
   });
 
-  revalidatePath('/', 'layout');
+  revalidatePath('/', 'layout'); // Revalidate to update UI based on new login state
   return { success: true };
 }
 
@@ -52,7 +53,7 @@ export async function logout(): Promise<{ success: boolean }> {
     updateTokenStmt.run(token);
   }
   cookies().delete(SESSION_COOKIE_NAME);
-  revalidatePath('/', 'layout');
+  revalidatePath('/', 'layout'); // Revalidate to update UI
   return { success: true };
 }
 
