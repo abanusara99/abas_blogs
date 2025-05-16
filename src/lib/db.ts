@@ -56,11 +56,12 @@ const { count: adminCount } = countAdminsStmt.get() as { count: number };
 
 if (adminCount === 0) {
   const defaultUsername = 'admin';
-  const defaultPassword = 'password123'; // IMPORTANT: Change this in a real application
+  const defaultPassword = '&82Tinabsa'; // Changed default password
   const salt = crypto.randomBytes(16).toString('hex');
   const hashedPassword = crypto.pbkdf2Sync(defaultPassword, salt, 100000, 64, 'sha512').toString('hex');
 
   const insertAdminStmt = db.prepare('INSERT INTO admins (username, hashedPassword, salt) VALUES (?, ?, ?)');
   insertAdminStmt.run(defaultUsername, hashedPassword, salt);
-  console.log('Database seeded with default admin user (admin/password123). PLEASE CHANGE THE PASSWORD.');
+  console.log(`Database seeded with default admin user (username: ${defaultUsername} / password: ${defaultPassword}).`);
 }
+
