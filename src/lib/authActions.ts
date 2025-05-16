@@ -36,6 +36,12 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
 
   if (!admin || admin.password !== providedPassword) {
     console.log('[AUTH] Login failed: Invalid username or password for username:', username);
+    // For debugging, let's see what the stored password is if the admin user exists
+    if (admin) {
+      console.log(`[AUTH] DEBUG: Stored password for ${username} is "${admin.password}". Provided password was "${providedPassword}".`);
+    } else {
+      console.log(`[AUTH] DEBUG: No admin user found with username ${username}.`);
+    }
     return { success: false, error: 'Invalid username or password.' };
   }
   console.log('[AUTH] Password check passed for admin ID:', admin.id);
@@ -73,7 +79,7 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
   cookies().set(SESSION_COOKIE_NAME, sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24 * 7, // 1 week
+    maxAge: 60 * 60 * 24 * 365 * 10, // 10 years (effectively "lifetime" for prototype)
     path: '/',
     sameSite: 'lax',
   });
@@ -106,19 +112,19 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
   const cookieStore = cookies(); 
   const tokenFromCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
-  console.log('[AUTH] getCurrentAdmin: Attempting to get current admin.');
-  console.log('[AUTH] getCurrentAdmin: Token from cookie:', tokenFromCookie);
+  // console.log('[AUTH] getCurrentAdmin: Attempting to get current admin.'); // Reduced verbosity here
+  // console.log('[AUTH] getCurrentAdmin: Token from cookie:', tokenFromCookie);
 
 
   if (!tokenFromCookie) {
-    console.log('[AUTH] getCurrentAdmin: No session token found in cookies.');
+    // console.log('[AUTH] getCurrentAdmin: No session token found in cookies.'); // Reduced verbosity
     return null;
   }
 
   try {
     // Select all relevant fields for debugging, even if only id and username are returned.
     const stmt = db.prepare('SELECT id, username, password, sessionToken FROM admins WHERE sessionToken = ?');
-    console.log('[AUTH] getCurrentAdmin: Querying DB with token:', tokenFromCookie);
+    // console.log('[AUTH] getCurrentAdmin: Querying DB with token:', tokenFromCookie); // Reduced verbosity
     const admin = stmt.get(tokenFromCookie) as (AdminUser & { password?: string, sessionToken?: string | null }) | undefined;
 
     if (admin) {
