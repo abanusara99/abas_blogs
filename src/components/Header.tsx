@@ -8,7 +8,7 @@ export function Header() {
     <header className="py-6 mb-8 border-b border-border shadow-sm">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-3 items-center">
         <div className="col-span-1 flex justify-start">
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="destructive" size="sm">
             <Link href="https://anuportfoliovisit.vercel.app/" target="_blank" rel="noopener noreferrer">
               <Info className="mr-2 h-4 w-4" />
               About
