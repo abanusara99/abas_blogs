@@ -10,7 +10,7 @@ export default function CreatePostPage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="shadow-xl">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold text-primary">Create New Post</CardTitle>
+            <CardTitle className="text-3xl font-bold text-foreground">Create New Post</CardTitle>
             <CardDescription>Share your thoughts with the world.</CardDescription>
           </CardHeader>
           <CardContent>
