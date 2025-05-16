@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { deletePost } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useTransition, useEffect } from "react";
-import { useRouter } from 'next/navigation'; // Changed from 'next/redirect'
+import { useState, useTransition } from "react";
+import { useRouter } from 'next/navigation';
 
 interface DeleteConfirmationDialogProps {
   post: Post;
@@ -27,7 +27,7 @@ interface DeleteConfirmationDialogProps {
 
 export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmationDialogProps) {
   const { toast } = useToast();
-  const router = useRouter(); // Use Next.js router for client-side navigation
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -44,10 +44,8 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
           if (onDeleted) {
             onDeleted();
           } else {
-            // If onDeleted is not provided, it might be on the post detail page.
-            // Redirect to home after deletion using client-side router.
             router.push('/');
-            router.refresh(); // Refresh server components on the target page
+            router.refresh(); 
           }
         } else {
           toast({
@@ -57,9 +55,15 @@ export function DeleteConfirmationDialog({ post, onDeleted }: DeleteConfirmation
           });
         }
       } catch (error) {
+        console.error("Error during post deletion:", error); // Log the actual error to the console
+        let errorMessage = "An unexpected error occurred. Check the console for details.";
+        if (error instanceof Error && error.message) {
+          // Use the error message if available, otherwise use the generic one
+          errorMessage = error.message;
+        }
         toast({
-          title: "Error",
-          description: "An unexpected error occurred.",
+          title: "Deletion Failed",
+          description: errorMessage,
           variant: "destructive",
         });
       }

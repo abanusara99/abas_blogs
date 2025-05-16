@@ -1,3 +1,4 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -47,8 +48,16 @@ export async function createPost(formData: FormData) {
   const newPostId = String(Date.now()); // Simple ID generation
   const createdAt = new Date().toISOString();
 
-  const stmt = db.prepare('INSERT INTO posts (id, title, content, createdAt) VALUES (?, ?, ?, ?)');
-  stmt.run(newPostId, title, content, createdAt);
+  try {
+    const stmt = db.prepare('INSERT INTO posts (id, title, content, createdAt) VALUES (?, ?, ?, ?)');
+    stmt.run(newPostId, title, content, createdAt);
+  } catch (dbError) {
+    console.error("Database error in createPost:", dbError);
+    // Depending on how you want to handle this, you could throw a more specific error
+    // or return a result object like in deletePost.
+    // For now, re-throwing a generic error to indicate failure.
+    throw new Error("A database error occurred while creating the post.");
+  }
 
   revalidatePath("/");
   revalidatePath(`/posts/${newPostId}`);
@@ -56,13 +65,18 @@ export async function createPost(formData: FormData) {
 }
 
 export async function deletePost(id: string): Promise<{ success: boolean; message?: string }> {
-  const stmt = db.prepare('DELETE FROM posts WHERE id = ?');
-  const result = stmt.run(id);
+  try {
+    const stmt = db.prepare('DELETE FROM posts WHERE id = ?');
+    const result = stmt.run(id);
 
-  if (result.changes === 0) {
-    return { success: false, message: "Post not found." };
+    if (result.changes === 0) {
+      return { success: false, message: "Post not found." };
+    }
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (dbError) {
+    console.error("Database error in deletePost:", dbError);
+    return { success: false, message: "A database error occurred while deleting the post. Check server console for details." };
   }
-
-  revalidatePath("/");
-  return { success: true };
 }
