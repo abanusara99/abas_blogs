@@ -47,8 +47,10 @@ export async function createPost(formData: FormData) {
   });
 
   if (!validatedFields.success) {
-    console.error("Validation failed:", validatedFields.error.flatten().fieldErrors);
-    throw new Error(`Validation failed: ${validatedFields.error.flatten().formErrors.join(', ')} ${Object.values(validatedFields.error.flatten().fieldErrors).flat().join(', ')}`);
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
+    const errorMessages = Object.values(fieldErrors).flat().join('; ') || validatedFields.error.flatten().formErrors.join('; ');
+    console.error("Validation failed for createPost:", fieldErrors);
+    throw new Error(`Validation failed: ${errorMessages}`);
   }
 
   const { title, content } = validatedFields.data;
@@ -58,9 +60,9 @@ export async function createPost(formData: FormData) {
   try {
     const stmt = db.prepare('INSERT INTO posts (id, title, content, createdAt) VALUES (?, ?, ?, ?)');
     stmt.run(newPostId, title, content, createdAt);
-  } catch (dbError) {
+  } catch (dbError: any) {
     console.error("Database error in createPost:", dbError);
-    throw new Error("A database error occurred while creating the post.");
+    throw new Error(`A database error occurred while creating the post: ${dbError.message}`);
   }
 
   revalidatePath("/");
@@ -68,10 +70,10 @@ export async function createPost(formData: FormData) {
   redirect(`/posts/${newPostId}`); 
 }
 
-export async function updatePost(id: string, formData: FormData): Promise<{ success: boolean; message?: string; error?: string, fieldErrors?: z.ZodFormattedError<z.infer<typeof PostSchema>, string>['fieldErrors'] }> {
+export async function updatePost(id: string, formData: FormData) {
   const admin = await getCurrentAdmin();
   if (!admin) {
-    return { success: false, error: "Unauthorized: You must be logged in as an admin to update posts." };
+    throw new Error("Unauthorized: You must be logged in as an admin to update posts.");
   }
 
   const validatedFields = PostSchema.safeParse({
@@ -80,8 +82,10 @@ export async function updatePost(id: string, formData: FormData): Promise<{ succ
   });
 
   if (!validatedFields.success) {
-    console.error("Validation failed for update:", validatedFields.error.flatten().fieldErrors);
-    return { success: false, error: "Validation failed. Please check your input.", fieldErrors: validatedFields.error.formErrors.fieldErrors };
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
+    const errorMessages = Object.values(fieldErrors).flat().join('; ') || validatedFields.error.flatten().formErrors.join('; ');
+    console.error("Validation failed for updatePost:", fieldErrors);
+    throw new Error(`Validation failed: ${errorMessages}`);
   }
 
   const { title, content } = validatedFields.data;
@@ -91,17 +95,16 @@ export async function updatePost(id: string, formData: FormData): Promise<{ succ
     const result = stmt.run(title, content, id);
 
     if (result.changes === 0) {
-      return { success: false, message: "Post not found or no changes made." };
+      throw new Error("Post not found or no changes made.");
     }
-  } catch (dbError) {
+  } catch (dbError: any) {
     console.error("Database error in updatePost:", dbError);
-    return { success: false, error: "A database error occurred while updating the post." };
+    throw new Error(`A database error occurred while updating the post: ${dbError.message}`);
   }
 
   revalidatePath("/");
   revalidatePath(`/posts/${id}`);
-  redirect(`/posts/${id}`); // Redirect to the view page of the updated post
-  // return { success: true }; // This line won't be reached due to redirect
+  redirect(`/posts/${id}`); 
 }
 
 
@@ -122,7 +125,7 @@ export async function deletePost(id: string): Promise<{ success: boolean; messag
     revalidatePath("/");
     // Note: revalidatePath(`/posts/${id}`) might be needed if you could go back to a cached deleted page
     return { success: true };
-  } catch (dbError) {
+  } catch (dbError: any) {
     console.error("Database error in deletePost:", dbError);
     return { success: false, message: "A database error occurred while deleting the post. Check server console for details." };
   }

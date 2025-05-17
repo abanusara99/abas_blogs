@@ -106,11 +106,11 @@ export function PostForm({ post }: PostFormProps) {
       case "bullet":
         const bulletPlaceholder = "List item";
         if (selectedText) {
-          newText = `${beforeText}* ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}${afterText}`;
-          newSelStart = selStart + `* ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}`.length;
+          newText = `${beforeText}* ${selectedText}${selectedText.endsWith('\\n') ? '' : '\\n'}${afterText}`;
+          newSelStart = selStart + `* ${selectedText}${selectedText.endsWith('\\n') ? '' : '\\n'}`.length;
           newSelEnd = newSelStart;
         } else {
-          newText = `${beforeText}* ${bulletPlaceholder}\n${afterText}`;
+          newText = `${beforeText}* ${bulletPlaceholder}\\n${afterText}`;
           newSelStart = selStart + 2; 
           newSelEnd = newSelStart + bulletPlaceholder.length;
         }
@@ -118,11 +118,11 @@ export function PostForm({ post }: PostFormProps) {
       case "ordered":
         const orderedPlaceholder = "List item";
         if (selectedText) {
-          newText = `${beforeText}1. ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}${afterText}`;
-          newSelStart = selStart + `1. ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}`.length;
+          newText = `${beforeText}1. ${selectedText}${selectedText.endsWith('\\n') ? '' : '\\n'}${afterText}`;
+          newSelStart = selStart + `1. ${selectedText}${selectedText.endsWith('\\n') ? '' : '\\n'}`.length;
           newSelEnd = newSelStart;
         } else {
-          newText = `${beforeText}1. ${orderedPlaceholder}\n${afterText}`;
+          newText = `${beforeText}1. ${orderedPlaceholder}\\n${afterText}`;
           newSelStart = selStart + 3; 
           newSelEnd = newSelStart + orderedPlaceholder.length;
         }
@@ -164,38 +164,16 @@ export function PostForm({ post }: PostFormProps) {
     startTransition(async () => {
       try {
         if (post?.id) {
-          // Editing existing post
-          const result = await updatePost(post.id, formData);
-          if (result.error) {
-             toast({
-              title: "Error Updating Post",
-              description: result.error || "Failed to update post.",
-              variant: "destructive",
-            });
-          } else {
-            toast({
-              title: "Post Updated!",
-              description: "Your blog post has been successfully updated.",
-            });
-            // Redirect is handled by the server action
-          }
+          await updatePost(post.id, formData);
+          // On success, updatePost will redirect. A success toast can be shown on the target page.
         } else {
-          // Creating new post
           await createPost(formData);
-          toast({
-            title: "Post Created!",
-            description: "Your new blog post has been successfully created.",
-          });
-          // Redirect is handled by the server action
+          // On success, createPost will redirect. A success toast can be shown on the target page.
         }
-      } catch (error) {
-        let errorMessage = post?.id ? "Failed to update post." : "Failed to create post.";
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        }
+      } catch (error: any) { // Catch errors thrown by the server actions
         toast({
-          title: "Error",
-          description: errorMessage,
+          title: "Operation Failed",
+          description: error.message || (post?.id ? "Failed to update post." : "Failed to create post."),
           variant: "destructive",
         });
       }
