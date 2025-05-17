@@ -3,8 +3,8 @@
 
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
-import { db } from './db'; 
-import { revalidatePath } from 'next/cache';
+import { db } from './db';
+import { revalidatePath } from 'next/cache'; // Import revalidatePath
 
 const SESSION_COOKIE_NAME = 'session_token';
 
@@ -32,7 +32,7 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
     console.error('[AUTH] Database error during admin lookup for username:', username, 'Error:', dbError.message, 'Stack:', dbError.stack);
     return { success: false, error: 'Login failed: Database query error while finding admin.' };
   }
-  
+
 
   if (!admin || admin.password !== providedPassword) {
     console.log('[AUTH] Login failed: Invalid username or password for username:', username);
@@ -90,8 +90,7 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
   });
   console.log('[AUTH] Session cookie set for admin ID:', admin.id, 'Token:', sessionToken);
 
-
-  revalidatePath('/', 'layout'); 
+  revalidatePath('/', 'layout'); // Revalidate paths to ensure UI updates
   return { success: true };
 }
 
@@ -109,7 +108,7 @@ export async function logout(): Promise<{ success: boolean }> {
   }
   cookies().delete(SESSION_COOKIE_NAME);
   console.log('[AUTH] Session cookie deleted.');
-  revalidatePath('/', 'layout'); 
+  revalidatePath('/', 'layout'); // Revalidate paths to ensure UI updates
   return { success: true };
 }
 
@@ -155,3 +154,4 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
     return null;
   }
 }
+
