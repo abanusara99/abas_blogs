@@ -81,6 +81,12 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* font-family from layout.tsx (Geist Sans) will be used */
+    font-family: var(--font-geist-sans); /* Explicitly use the sans-serif font variable */
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-geist-sans); /* Apply to headings as well */
+  }
+  pre, code, kbd, samp { /* Common elements for monospaced text */
+    font-family: var(--font-geist-mono); /* Explicitly use the mono font variable */
   }
 }
