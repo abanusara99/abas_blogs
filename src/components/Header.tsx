@@ -1,10 +1,10 @@
 
 import Link from 'next/link';
-import { PlusCircle, Info, LogOut, User } from 'lucide-react'; // Added User for consistency if needed, though LoginDialog handles its own icon
+import { PlusCircle, Info, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentAdmin, logout } from '@/lib/authActions';
 import type { AdminUser } from '@/lib/authActions';
-import { LoginDialog } from './LoginDialog'; // Import the LoginDialog
+import { LoginDialog } from './LoginDialog';
 
 export async function Header() {
   const admin: AdminUser | null = await getCurrentAdmin();
@@ -20,8 +20,8 @@ export async function Header() {
         <div className="col-span-1 flex justify-start">
           <Button asChild variant="destructive" size="sm">
             <Link href="https://anuportfoliovisit.vercel.app/" target="_blank" rel="noopener noreferrer">
-              <Info className="h-4 w-4 md:mr-2" /> {/* Apply margin on md+ */}
-              <span className="hidden md:inline">About</span> {/* Show text on md+ */}
+              <Info className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">About</span>
             </Link>
           </Button>
         </div>
@@ -31,17 +31,17 @@ export async function Header() {
         <div className="col-span-1 flex justify-end items-center space-x-2">
           {admin ? (
             <>
-              <span className="text-sm text-muted-foreground hidden md:inline">Hi, {admin.username}</span> {/* Show username on md+ */}
+              {/* "Hi, admin" text removed from here */}
               <Button asChild variant="default" data-admin-visibility="true">
                 <Link href="/posts/create">
-                  <PlusCircle className="h-5 w-5 md:mr-2" /> {/* Apply margin on md+ */}
-                  <span className="hidden md:inline">Create Post</span> {/* Show text on md+ */}
+                  <PlusCircle className="h-5 w-5 md:mr-2" />
+                  <span className="hidden md:inline">Create Post</span>
                 </Link>
               </Button>
               <form action={handleLogout}>
                 <Button type="submit" variant="outline" size="sm">
-                  <LogOut className="h-4 w-4 md:mr-2" /> {/* Apply margin on md+ */}
-                  <span className="hidden md:inline">Logout</span> {/* Show text on md+ */}
+                  <LogOut className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Logout</span>
                 </Button>
               </form>
             </>

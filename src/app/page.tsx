@@ -14,6 +14,11 @@ export default async function HomePage() {
     <>
       <Header />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {admin && (
+          <h2 className="text-2xl font-semibold mb-6 text-center text-foreground">
+            Welcome back, {admin.username}!
+          </h2>
+        )}
         <h1 className="text-4xl font-bold mb-10 text-center text-foreground">Latest Posts</h1>
         {posts.length === 0 ? (
           <p className="text-center text-muted-foreground text-lg">No posts yet. Be the first to create one!</p>
