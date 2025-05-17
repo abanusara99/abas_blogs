@@ -16,11 +16,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { createPost } from "@/lib/actions";
+import { createPost, updatePost } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { Send, Bold, Italic, List, ListOrdered, Link2, XCircle } from "lucide-react";
-import { useTransition, useRef } from "react";
+import { Send, Bold, Italic, List, ListOrdered, Link2, XCircle, Save } from "lucide-react"; // Added Save icon
+import { useTransition, useRef, useEffect } from "react";
+import type { Post } from "@/types";
 
 const formSchema = z.object({
   title: z.string().min(3, {
@@ -35,7 +36,11 @@ const formSchema = z.object({
   }),
 });
 
-export function PostForm() {
+interface PostFormProps {
+  post?: Post; // Optional post for editing
+}
+
+export function PostForm({ post }: PostFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -44,10 +49,19 @@ export function PostForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      content: "",
+      title: post?.title || "",
+      content: post?.content || "",
     },
   });
+
+  useEffect(() => {
+    if (post) {
+      form.reset({
+        title: post.title,
+        content: post.content,
+      });
+    }
+  }, [post, form]);
 
   const applyFormat = (formatType: "bold" | "italic" | "bullet" | "ordered" | "link") => {
     const textarea = contentRef.current;
@@ -69,11 +83,11 @@ export function PostForm() {
         const boldPlaceholder = "text";
         if (selectedText) {
           newText = `${beforeText}**${selectedText}**${afterText}`;
-          newSelStart = selStart + 2 + selectedText.length + 2; // Cursor after
+          newSelStart = selStart + 2 + selectedText.length + 2; 
           newSelEnd = newSelStart;
         } else {
           newText = `${beforeText}**${boldPlaceholder}**${afterText}`;
-          newSelStart = selStart + 2; // Select placeholder
+          newSelStart = selStart + 2; 
           newSelEnd = newSelStart + boldPlaceholder.length;
         }
         break;
@@ -81,11 +95,11 @@ export function PostForm() {
         const italicPlaceholder = "text";
         if (selectedText) {
           newText = `${beforeText}*${selectedText}*${afterText}`;
-          newSelStart = selStart + 1 + selectedText.length + 1; // Cursor after
+          newSelStart = selStart + 1 + selectedText.length + 1; 
           newSelEnd = newSelStart;
         } else {
           newText = `${beforeText}*${italicPlaceholder}*${afterText}`;
-          newSelStart = selStart + 1; // Select placeholder
+          newSelStart = selStart + 1; 
           newSelEnd = newSelStart + italicPlaceholder.length;
         }
         break;
@@ -97,7 +111,7 @@ export function PostForm() {
           newSelEnd = newSelStart;
         } else {
           newText = `${beforeText}* ${bulletPlaceholder}\n${afterText}`;
-          newSelStart = selStart + 2; // Select placeholder
+          newSelStart = selStart + 2; 
           newSelEnd = newSelStart + bulletPlaceholder.length;
         }
         break;
@@ -109,7 +123,7 @@ export function PostForm() {
           newSelEnd = newSelStart;
         } else {
           newText = `${beforeText}1. ${orderedPlaceholder}\n${afterText}`;
-          newSelStart = selStart + 3; // Select placeholder
+          newSelStart = selStart + 3; 
           newSelEnd = newSelStart + orderedPlaceholder.length;
         }
         break;
@@ -120,19 +134,19 @@ export function PostForm() {
           const actualLinkText = selectedText || linkTextPlaceholder;
           newText = `${beforeText}[${actualLinkText}](${url})${afterText}`;
           if (selectedText) {
-            newSelStart = selStart + `[${actualLinkText}](${url})`.length; // Cursor after
+            newSelStart = selStart + `[${actualLinkText}](${url})`.length; 
             newSelEnd = newSelStart;
           } else {
-            newSelStart = selStart + 1; // Select "link text" placeholder
+            newSelStart = selStart + 1; 
             newSelEnd = newSelStart + linkTextPlaceholder.length;
           }
         } else {
-          return; // User cancelled prompt
+          return; 
         }
         break;
     }
     
-    form.setValue("content", newText, { shouldDirty: true, shouldTouch: true });
+    form.setValue("content", newText, { shouldDirty: true, shouldTouch: true, shouldValidate: false });
     
     requestAnimationFrame(() => {
       if (contentRef.current) {
@@ -149,14 +163,33 @@ export function PostForm() {
 
     startTransition(async () => {
       try {
-        await createPost(formData);
-        toast({
-          title: "Post Created!",
-          description: "Your new blog post has been successfully created.",
-        });
-        // Redirection is handled by the server action if successful
+        if (post?.id) {
+          // Editing existing post
+          const result = await updatePost(post.id, formData);
+          if (result.error) {
+             toast({
+              title: "Error Updating Post",
+              description: result.error || "Failed to update post.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Post Updated!",
+              description: "Your blog post has been successfully updated.",
+            });
+            // Redirect is handled by the server action
+          }
+        } else {
+          // Creating new post
+          await createPost(formData);
+          toast({
+            title: "Post Created!",
+            description: "Your new blog post has been successfully created.",
+          });
+          // Redirect is handled by the server action
+        }
       } catch (error) {
-        let errorMessage = "Failed to create post.";
+        let errorMessage = post?.id ? "Failed to update post." : "Failed to create post.";
         if (error instanceof Error) {
           errorMessage = error.message;
         }
@@ -168,6 +201,8 @@ export function PostForm() {
       }
     });
   }
+
+  const isEditing = !!post?.id;
 
   return (
     <Form {...form}>
@@ -229,18 +264,18 @@ export function PostForm() {
         <div className="flex space-x-2">
           <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isPending}>
             {isPending ? (
-              "Submitting..."
+              isEditing ? "Updating..." : "Submitting..."
             ) : (
               <>
-                <Send className="mr-2 h-4 w-4" />
-                Submit Post
+                {isEditing ? <Save className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
+                {isEditing ? "Update Post" : "Submit Post"}
               </>
             )}
           </Button>
           <Button
             type="button"
             variant="destructive"
-            onClick={() => router.push('/')}
+            onClick={() => router.push(isEditing ? `/posts/${post.id}` : '/')}
             disabled={isPending}
           >
             <XCircle className="mr-2 h-4 w-4" />

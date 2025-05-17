@@ -10,6 +10,7 @@ import { getCurrentAdmin } from "./authActions"; // Import auth function
 
 export async function getPosts(): Promise<Post[]> {
   const stmt = db.prepare('SELECT * FROM posts ORDER BY createdAt DESC');
+  // Ensure that the data from the DB is correctly typed, especially dates
   const dbPosts = stmt.all() as Omit<Post, 'createdAt'> & { createdAt: string }[];
   return dbPosts.map(post => ({
     ...post,
@@ -30,8 +31,8 @@ export async function getPostById(id: string): Promise<Post | undefined> {
 }
 
 const PostSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters long."),
-  content: z.string().min(10, "Content must be at least 10 characters long."),
+  title: z.string().min(3, "Title must be at least 3 characters long.").max(100, "Title must not exceed 100 characters."),
+  content: z.string().min(10, "Content must be at least 10 characters long.").max(5000, "Content must not exceed 5000 characters."),
 });
 
 export async function createPost(formData: FormData) {
@@ -47,7 +48,7 @@ export async function createPost(formData: FormData) {
 
   if (!validatedFields.success) {
     console.error("Validation failed:", validatedFields.error.flatten().fieldErrors);
-    throw new Error("Validation failed. Please check your input.");
+    throw new Error(`Validation failed: ${validatedFields.error.flatten().formErrors.join(', ')} ${Object.values(validatedFields.error.flatten().fieldErrors).flat().join(', ')}`);
   }
 
   const { title, content } = validatedFields.data;
@@ -64,8 +65,45 @@ export async function createPost(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath(`/posts/${newPostId}`);
-  redirect("/"); 
+  redirect(`/posts/${newPostId}`); 
 }
+
+export async function updatePost(id: string, formData: FormData): Promise<{ success: boolean; message?: string; error?: string, fieldErrors?: z.ZodFormattedError<z.infer<typeof PostSchema>, string>['fieldErrors'] }> {
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    return { success: false, error: "Unauthorized: You must be logged in as an admin to update posts." };
+  }
+
+  const validatedFields = PostSchema.safeParse({
+    title: formData.get("title"),
+    content: formData.get("content"),
+  });
+
+  if (!validatedFields.success) {
+    console.error("Validation failed for update:", validatedFields.error.flatten().fieldErrors);
+    return { success: false, error: "Validation failed. Please check your input.", fieldErrors: validatedFields.error.formErrors.fieldErrors };
+  }
+
+  const { title, content } = validatedFields.data;
+
+  try {
+    const stmt = db.prepare('UPDATE posts SET title = ?, content = ? WHERE id = ?');
+    const result = stmt.run(title, content, id);
+
+    if (result.changes === 0) {
+      return { success: false, message: "Post not found or no changes made." };
+    }
+  } catch (dbError) {
+    console.error("Database error in updatePost:", dbError);
+    return { success: false, error: "A database error occurred while updating the post." };
+  }
+
+  revalidatePath("/");
+  revalidatePath(`/posts/${id}`);
+  redirect(`/posts/${id}`); // Redirect to the view page of the updated post
+  // return { success: true }; // This line won't be reached due to redirect
+}
+
 
 export async function deletePost(id: string): Promise<{ success: boolean; message?: string }> {
   const admin = await getCurrentAdmin();
