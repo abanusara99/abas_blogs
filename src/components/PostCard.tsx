@@ -3,12 +3,12 @@ import Link from 'next/link';
 import type { Post } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
+import { Eye, Pencil, Trash2 } from 'lucide-react'; // Added Pencil
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 
 interface PostCardProps {
   post: Post;
-  isAdmin: boolean; // Added isAdmin prop
+  isAdmin: boolean;
 }
 
 function generateExcerpt(content: string, maxLength: number = 100) {
@@ -52,7 +52,17 @@ export function PostCard({ post, isAdmin }: PostCardProps) {
             View Post
           </Link>
         </Button>
-        {isAdmin && <DeleteConfirmationDialog post={post} data-admin-visibility="true" />}
+        {isAdmin && (
+          <>
+            <Button asChild variant="outline" size="sm" data-admin-visibility="true">
+              <Link href={`/posts/${post.id}/edit`}> {/* Link to a hypothetical edit page */}
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </Link>
+            </Button>
+            <DeleteConfirmationDialog post={post} data-admin-visibility="true" />
+          </>
+        )}
       </CardFooter>
     </Card>
   );
