@@ -26,7 +26,7 @@ export async function Header() {
           </Button>
         </div>
         <Link href="/" className="col-span-1 text-3xl font-bold text-foreground hover:opacity-80 transition-opacity text-center">
-          ABASBlogs
+          ABAS-Blogs
         </Link>
         <div className="col-span-1 flex justify-end items-center space-x-2">
           {admin ? (
