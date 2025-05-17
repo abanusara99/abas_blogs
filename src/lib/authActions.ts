@@ -60,6 +60,7 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
       return { success: false, error: 'Login failed: Could not save session (update failed).' };
     }
 
+    // Enhanced verification: Try to fetch the admin by the new sessionToken
     const verifyByTokenStmt = db.prepare('SELECT id, username, sessionToken FROM admins WHERE sessionToken = ?');
     const verifiedAdminByToken = verifyByTokenStmt.get(sessionToken) as (AdminUser & { sessionToken: string | null }) | undefined;
 
@@ -67,7 +68,7 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
       console.error('[AUTH] Failed to verify session token in DB by querying the token itself. Admin ID:', admin.id, 'Expected Token:', sessionToken, 'Found Admin by Token:', JSON.stringify(verifiedAdminByToken));
       try {
         const allAdminsInDB = db.prepare('SELECT id, username, password, sessionToken FROM admins').all();
-        console.log('[AUTH] LOGIN VERIFY FAIL DEBUG - All admins currently in DB:', JSON.stringify(allAdminsInDB, null, 2));
+        console.log('[AUTH] LOGIN VERIFY FAIL DEBUG - All admins currently in DB:', JSON.stringify(allAdminsInDB.map(a => ({id: a.id, username: a.username, sessionToken: a.sessionToken ? `${(a.sessionToken as string).slice(0,6)}...${(a.sessionToken as string).slice(-6)}` : null, passwordStored: !!a.password})), null, 2));
       } catch (debugDbError: any) {
         console.error('[AUTH] LOGIN VERIFY FAIL DEBUG - Error fetching all admins:', debugDbError.message);
       }
@@ -113,21 +114,23 @@ export async function logout(): Promise<{ success: boolean }> {
 }
 
 export async function getCurrentAdmin(): Promise<AdminUser | null> {
-  const cookieStore = cookies();
+  const cookieStore = cookies(); // This is the standard way to get the cookie store in an async context
   const tokenFromCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (!tokenFromCookie) {
-    // This is normal if the user is not logged in. No need to log every time.
+    // This is normal if the user is not logged in. No need to log every time for this case.
     // console.log('[AUTH] getCurrentAdmin: No session token found in cookies.');
     return null;
   }
 
-  console.log('[AUTH] getCurrentAdmin: Attempting to find admin. Token from cookie is:', `"${tokenFromCookie}"`);
+  // More detailed logging for when a token IS found
+  console.log(`[AUTH] getCurrentAdmin: Attempting to find admin with token from cookie: "${tokenFromCookie}"`);
 
   try {
     const sql = 'SELECT id, username, password, sessionToken FROM admins WHERE sessionToken = ?';
-    console.log('[AUTH] getCurrentAdmin: Executing SQL:', sql, 'with token:', `"${tokenFromCookie}"`);
+    console.log(`[AUTH] getCurrentAdmin: Executing SQL: ${sql} with token parameter: "${tokenFromCookie}"`);
     const stmt = db.prepare(sql);
+    // Important: Ensure the parameter is passed correctly to stmt.get()
     const admin = stmt.get(tokenFromCookie) as (AdminUser & { password?: string; sessionToken?: string | null }) | undefined;
 
     if (admin && admin.sessionToken === tokenFromCookie) {
@@ -135,8 +138,8 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
       return { id: admin.id, username: admin.username };
     } else {
       console.log('[AUTH] getCurrentAdmin: Admin NOT FOUND in DB for token:', `"${tokenFromCookie}"`);
-      if (admin && admin.sessionToken !== tokenFromCookie) {
-        console.warn('[AUTH] getCurrentAdmin: DEBUG - A user was found, but their DB token did not match the cookie token. DB Token:', `"${admin.sessionToken}"`);
+      if (admin && admin.sessionToken !== tokenFromCookie) { // This case should be rare if token is primary key or unique
+        console.warn('[AUTH] getCurrentAdmin: DEBUG - An admin record was found, but its DB sessionToken did not match the cookie token. DB Token:', `"${admin.sessionToken}"`);
       }
       try {
         const allAdminsInDB = db.prepare('SELECT id, username, password, sessionToken FROM admins').all();
