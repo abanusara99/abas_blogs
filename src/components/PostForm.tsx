@@ -53,49 +53,93 @@ export function PostForm() {
     const textarea = contentRef.current;
     if (!textarea) return;
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
-    const beforeText = textarea.value.substring(0, start);
-    const afterText = textarea.value.substring(end);
-    let newText = textarea.value;
-    let cursorPos = end;
+    const currentVal = textarea.value;
+    const selStart = textarea.selectionStart;
+    const selEnd = textarea.selectionEnd;
+    const selectedText = currentVal.substring(selStart, selEnd);
+    const beforeText = currentVal.substring(0, selStart);
+    const afterText = currentVal.substring(selEnd);
+
+    let newText = currentVal;
+    let newSelStart = selStart;
+    let newSelEnd = selEnd;
 
     switch (formatType) {
       case "bold":
-        newText = `${beforeText}**${selectedText || "text"}**${afterText}`;
-        cursorPos = start + 2 + (selectedText ? selectedText.length : 4) + 2;
-        if (!selectedText) cursorPos = start + 2;
+        const boldPlaceholder = "text";
+        if (selectedText) {
+          newText = `${beforeText}**${selectedText}**${afterText}`;
+          newSelStart = selStart + 2 + selectedText.length + 2; // Cursor after
+          newSelEnd = newSelStart;
+        } else {
+          newText = `${beforeText}**${boldPlaceholder}**${afterText}`;
+          newSelStart = selStart + 2; // Select placeholder
+          newSelEnd = newSelStart + boldPlaceholder.length;
+        }
         break;
       case "italic":
-        newText = `${beforeText}*${selectedText || "text"}*${afterText}`;
-        cursorPos = start + 1 + (selectedText ? selectedText.length : 4) + 1;
-        if (!selectedText) cursorPos = start + 1;
+        const italicPlaceholder = "text";
+        if (selectedText) {
+          newText = `${beforeText}*${selectedText}*${afterText}`;
+          newSelStart = selStart + 1 + selectedText.length + 1; // Cursor after
+          newSelEnd = newSelStart;
+        } else {
+          newText = `${beforeText}*${italicPlaceholder}*${afterText}`;
+          newSelStart = selStart + 1; // Select placeholder
+          newSelEnd = newSelStart + italicPlaceholder.length;
+        }
         break;
       case "bullet":
-        newText = `${beforeText}* ${selectedText || "List item"}\n${afterText}`;
-        cursorPos = start + 2 + (selectedText ? selectedText.length : 9);
+        const bulletPlaceholder = "List item";
+        if (selectedText) {
+          newText = `${beforeText}* ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}${afterText}`;
+          newSelStart = selStart + `* ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}`.length;
+          newSelEnd = newSelStart;
+        } else {
+          newText = `${beforeText}* ${bulletPlaceholder}\n${afterText}`;
+          newSelStart = selStart + 2; // Select placeholder
+          newSelEnd = newSelStart + bulletPlaceholder.length;
+        }
         break;
       case "ordered":
-        newText = `${beforeText}1. ${selectedText || "List item"}\n${afterText}`;
-        cursorPos = start + 3 + (selectedText ? selectedText.length : 9);
+        const orderedPlaceholder = "List item";
+        if (selectedText) {
+          newText = `${beforeText}1. ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}${afterText}`;
+          newSelStart = selStart + `1. ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}`.length;
+          newSelEnd = newSelStart;
+        } else {
+          newText = `${beforeText}1. ${orderedPlaceholder}\n${afterText}`;
+          newSelStart = selStart + 3; // Select placeholder
+          newSelEnd = newSelStart + orderedPlaceholder.length;
+        }
         break;
       case "link":
         const url = prompt("Enter link URL:", "https://");
         if (url) {
-          const linkText = selectedText || "link text";
-          newText = `${beforeText}[${linkText}](${url})${afterText}`;
-          cursorPos = start + 1 + linkText.length + 3 + url.length + 1;
+          const linkTextPlaceholder = "link text";
+          const actualLinkText = selectedText || linkTextPlaceholder;
+          newText = `${beforeText}[${actualLinkText}](${url})${afterText}`;
+          if (selectedText) {
+            newSelStart = selStart + `[${actualLinkText}](${url})`.length; // Cursor after
+            newSelEnd = newSelStart;
+          } else {
+            newSelStart = selStart + 1; // Select "link text" placeholder
+            newSelEnd = newSelStart + linkTextPlaceholder.length;
+          }
+        } else {
+          return; // User cancelled prompt
         }
         break;
     }
     
-    form.setValue("content", newText, { shouldValidate: true });
-    // Wait for next tick to set focus and selection
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(cursorPos, cursorPos);
-    }, 0);
+    form.setValue("content", newText, { shouldDirty: true, shouldTouch: true });
+    
+    requestAnimationFrame(() => {
+      if (contentRef.current) {
+        contentRef.current.focus();
+        contentRef.current.setSelectionRange(newSelStart, newSelEnd);
+      }
+    });
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -110,7 +154,7 @@ export function PostForm() {
           title: "Post Created!",
           description: "Your new blog post has been successfully created.",
         });
-        // Redirection is handled by the server action
+        // Redirection is handled by the server action if successful
       } catch (error) {
         let errorMessage = "Failed to create post.";
         if (error instanceof Error) {
@@ -171,7 +215,7 @@ export function PostForm() {
                 <Textarea
                   placeholder="Write your blog post content here..."
                   {...field}
-                  ref={contentRef} // Assign ref here
+                  ref={contentRef} 
                   className="min-h-[200px] text-base"
                 />
               </FormControl>
@@ -207,4 +251,3 @@ export function PostForm() {
     </Form>
   );
 }
-
