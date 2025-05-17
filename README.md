@@ -69,6 +69,7 @@ This will serve the optimized application.
 - Tailwind CSS
 - Genkit (for potential AI features)
 - better-sqlite3 (for local database)
+- react-markdown remark-gfm
 
 ## Project Structure Overview
 

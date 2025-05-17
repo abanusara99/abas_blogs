@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,9 +18,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { createPost, updatePost } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { Send, Bold, Italic, List, ListOrdered, Link2, XCircle, Save } from "lucide-react"; // Added Save icon
+import { Send, Bold, Italic, List, ListOrdered, Link2, XCircle, Save } from "lucide-react";
 import { useTransition, useRef, useEffect } from "react";
 import type { Post } from "@/types";
+import { PostPreview } from "@/components/PostPreview"; // Optional
 
 const formSchema = z.object({
   title: z.string().min(3, {
@@ -37,7 +37,7 @@ const formSchema = z.object({
 });
 
 interface PostFormProps {
-  post?: Post; // Optional post for editing
+  post?: Post;
 }
 
 export function PostForm({ post }: PostFormProps) {
@@ -63,7 +63,7 @@ export function PostForm({ post }: PostFormProps) {
     }
   }, [post, form]);
 
-  const applyFormat = (formatType: "bold" | "italic" | "bullet" | "ordered" | "link") => {
+  const applyFormat = (formatType: "bold" | "italic" | "underline" | "bullet" | "ordered" | "link") => {
     const textarea = contentRef.current;
     if (!textarea) return;
 
@@ -83,11 +83,11 @@ export function PostForm({ post }: PostFormProps) {
         const boldPlaceholder = "text";
         if (selectedText) {
           newText = `${beforeText}**${selectedText}**${afterText}`;
-          newSelStart = selStart + 2 + selectedText.length + 2; 
+          newSelStart = selStart + 2 + selectedText.length + 2;
           newSelEnd = newSelStart;
         } else {
           newText = `${beforeText}**${boldPlaceholder}**${afterText}`;
-          newSelStart = selStart + 2; 
+          newSelStart = selStart + 2;
           newSelEnd = newSelStart + boldPlaceholder.length;
         }
         break;
@@ -95,35 +95,47 @@ export function PostForm({ post }: PostFormProps) {
         const italicPlaceholder = "text";
         if (selectedText) {
           newText = `${beforeText}*${selectedText}*${afterText}`;
-          newSelStart = selStart + 1 + selectedText.length + 1; 
+          newSelStart = selStart + 1 + selectedText.length + 1;
           newSelEnd = newSelStart;
         } else {
           newText = `${beforeText}*${italicPlaceholder}*${afterText}`;
-          newSelStart = selStart + 1; 
+          newSelStart = selStart + 1;
           newSelEnd = newSelStart + italicPlaceholder.length;
+        }
+        break;
+      case "underline":
+        const underlinePlaceholder = "text";
+        if (selectedText) {
+          newText = `${beforeText}__${selectedText}__${afterText}`;
+          newSelStart = selStart + 2 + selectedText.length + 2;
+          newSelEnd = newSelStart;
+        } else {
+          newText = `${beforeText}__${underlinePlaceholder}__${afterText}`;
+          newSelStart = selStart + 2;
+          newSelEnd = newSelStart + underlinePlaceholder.length;
         }
         break;
       case "bullet":
         const bulletPlaceholder = "List item";
         if (selectedText) {
-          newText = `${beforeText}* ${selectedText}${selectedText.endsWith('\\n') ? '' : '\\n'}${afterText}`;
-          newSelStart = selStart + `* ${selectedText}${selectedText.endsWith('\\n') ? '' : '\\n'}`.length;
+          newText = `${beforeText}* ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}${afterText}`;
+          newSelStart = selStart + `* ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}`.length;
           newSelEnd = newSelStart;
         } else {
-          newText = `${beforeText}* ${bulletPlaceholder}\\n${afterText}`;
-          newSelStart = selStart + 2; 
+          newText = `${beforeText}* ${bulletPlaceholder}\n${afterText}`;
+          newSelStart = selStart + 2;
           newSelEnd = newSelStart + bulletPlaceholder.length;
         }
         break;
       case "ordered":
         const orderedPlaceholder = "List item";
         if (selectedText) {
-          newText = `${beforeText}1. ${selectedText}${selectedText.endsWith('\\n') ? '' : '\\n'}${afterText}`;
-          newSelStart = selStart + `1. ${selectedText}${selectedText.endsWith('\\n') ? '' : '\\n'}`.length;
+          newText = `${beforeText}1. ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}${afterText}`;
+          newSelStart = selStart + `1. ${selectedText}${selectedText.endsWith('\n') ? '' : '\n'}`.length;
           newSelEnd = newSelStart;
         } else {
-          newText = `${beforeText}1. ${orderedPlaceholder}\\n${afterText}`;
-          newSelStart = selStart + 3; 
+          newText = `${beforeText}1. ${orderedPlaceholder}\n${afterText}`;
+          newSelStart = selStart + 3;
           newSelEnd = newSelStart + orderedPlaceholder.length;
         }
         break;
@@ -134,20 +146,20 @@ export function PostForm({ post }: PostFormProps) {
           const actualLinkText = selectedText || linkTextPlaceholder;
           newText = `${beforeText}[${actualLinkText}](${url})${afterText}`;
           if (selectedText) {
-            newSelStart = selStart + `[${actualLinkText}](${url})`.length; 
+            newSelStart = selStart + `[${actualLinkText}](${url})`.length;
             newSelEnd = newSelStart;
           } else {
-            newSelStart = selStart + 1; 
+            newSelStart = selStart + 1;
             newSelEnd = newSelStart + linkTextPlaceholder.length;
           }
         } else {
-          return; 
+          return;
         }
         break;
     }
-    
+
     form.setValue("content", newText, { shouldDirty: true, shouldTouch: true, shouldValidate: false });
-    
+
     requestAnimationFrame(() => {
       if (contentRef.current) {
         contentRef.current.focus();
@@ -165,12 +177,10 @@ export function PostForm({ post }: PostFormProps) {
       try {
         if (post?.id) {
           await updatePost(post.id, formData);
-          // On success, updatePost will redirect. A success toast can be shown on the target page.
         } else {
           await createPost(formData);
-          // On success, createPost will redirect. A success toast can be shown on the target page.
         }
-      } catch (error: any) { // Catch errors thrown by the server actions
+      } catch (error: any) {
         toast({
           title: "Operation Failed",
           description: error.message || (post?.id ? "Failed to update post." : "Failed to create post."),
@@ -214,6 +224,13 @@ export function PostForm({ post }: PostFormProps) {
                 <Button type="button" variant="outline" size="icon" onClick={() => applyFormat("italic")} title="Italic">
                   <Italic className="h-4 w-4" />
                 </Button>
+                <Button type="button" variant="outline" size="icon" onClick={() => applyFormat("underline")} title="Underline">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                       strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <path d="M6 15v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2v-3"></path>
+                    <path d="M19 9c0 -2 -1.343 -3 -3 -3h-8c-1.657 0 -3 1 -3 3v0"></path>
+                  </svg>
+                </Button>
                 <Button type="button" variant="outline" size="icon" onClick={() => applyFormat("bullet")} title="Bullet List">
                   <List className="h-4 w-4" />
                 </Button>
@@ -228,7 +245,7 @@ export function PostForm({ post }: PostFormProps) {
                 <Textarea
                   placeholder="Write your blog post content here..."
                   {...field}
-                  ref={contentRef} 
+                  ref={contentRef}
                   className="min-h-[200px] text-base"
                 />
               </FormControl>
@@ -239,6 +256,13 @@ export function PostForm({ post }: PostFormProps) {
             </FormItem>
           )}
         />
+        
+        {/* Optional Live Preview */}
+        <div className="mt-8 border-t pt-6">
+          <h3 className="text-lg font-semibold mb-4">Live Preview</h3>
+          <PostPreview content={form.watch("content")} />
+        </div>
+
         <div className="flex space-x-2">
           <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isPending}>
             {isPending ? (
@@ -253,7 +277,7 @@ export function PostForm({ post }: PostFormProps) {
           <Button
             type="button"
             variant="destructive"
-            onClick={() => router.push(isEditing ? `/posts/${post.id}` : '/')}
+            onClick={() => router.push(isEditing ? `/posts/${post?.id}` : "/")}
             disabled={isPending}
           >
             <XCircle className="mr-2 h-4 w-4" />
