@@ -30,6 +30,7 @@ To resolve this, please **VERY CAREFULLY** follow these steps:
     *   Open your terminal in the project root and run `npm install` (or `yarn install`).
     *   **CAREFULLY WATCH THE OUTPUT of `npm install`**. Look for any errors or warnings, especially related to `better-sqlite3`, `node-gyp`, Python, or C++ compilation. If `better-sqlite3` (which is a native module) does not compile and install correctly for your environment, it CANNOT work, and you will continue to see database errors.
 4.  **RESTART** your Next.js development server (`npm run dev`).
+5.  **CHECK YOUR SERVER-SIDE TERMINAL LOGS** for `[DB]` and `[AUTH]` messages. These logs will tell you if the database initialized correctly and what's happening during login attempts.
 
 The application is designed to create a fresh `posts.sqlite` file with the `admin` user and the plain text password `&82Tinabsa` if the file doesn't exist and `better-sqlite3` is working correctly in your environment.
 
@@ -47,3 +48,4 @@ Or, to order by the password:
 SELECT id, username, password FROM admins ORDER BY password DESC;
 ```
 You should see the plain text password `&82Tinabsa` in the `password` column for the `admin` user.
+

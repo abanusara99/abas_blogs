@@ -26,18 +26,19 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
 
   let admin: { id: number; password: string } | undefined;
   try {
+    // Using plain text password as per user's current prototype setup
     const stmt = db.prepare('SELECT id, password FROM admins WHERE username = ?');
     admin = stmt.get(username) as { id: number; password: string } | undefined;
   } catch (dbError: any) {
     console.error('[AUTH] Database error during admin lookup for username:', username, 'Error:', dbError.message, 'Stack:', dbError.stack);
-    return { success: false, error: 'Login failed: Database query error.' };
+    return { success: false, error: 'Login failed: Database query error while finding admin.' };
   }
   
 
   if (!admin || admin.password !== providedPassword) {
     console.log('[AUTH] Login failed: Invalid username or password for username:', username);
     if (admin) {
-      console.log(`[AUTH] DEBUG: Stored password for ${username} is "${admin.password}". Provided password was "${providedPassword}".`);
+      console.log(`[AUTH] DEBUG: Stored plain text password for ${username} is "${admin.password}". Provided password was "${providedPassword}".`);
     } else {
       console.log(`[AUTH] DEBUG: No admin user found with username ${username}.`);
     }
@@ -61,21 +62,20 @@ export async function login(formData: FormData): Promise<{ success: boolean; err
     }
 
     // More robust verification: Query by the token itself to ensure it's written and retrievable
-    const verifyByTokenStmt = db.prepare('SELECT id, sessionToken FROM admins WHERE sessionToken = ?');
-    const verifiedAdminByToken = verifyByTokenStmt.get(sessionToken) as { id: number; sessionToken: string | null } | undefined;
+    const verifyByTokenStmt = db.prepare('SELECT id, username, sessionToken FROM admins WHERE sessionToken = ?');
+    const verifiedAdminByToken = verifyByTokenStmt.get(sessionToken) as (AdminUser & { sessionToken: string | null }) | undefined;
 
     if (!verifiedAdminByToken || verifiedAdminByToken.sessionToken !== sessionToken || verifiedAdminByToken.id !== admin.id) {
       console.error('[AUTH] Failed to verify session token in DB by querying the token itself. Admin ID:', admin.id, 'Expected Token:', sessionToken, 'Found Admin by Token:', JSON.stringify(verifiedAdminByToken));
-      // Attempt to log all tokens for debugging if verification fails
       try {
-        const allAdminsInDB = db.prepare('SELECT id, username, sessionToken FROM admins').all();
+        const allAdminsInDB = db.prepare('SELECT id, username, password, sessionToken FROM admins').all();
         console.log('[AUTH] LOGIN VERIFY FAIL DEBUG - All admins currently in DB:', JSON.stringify(allAdminsInDB, null, 2));
       } catch (debugDbError: any) {
         console.error('[AUTH] LOGIN VERIFY FAIL DEBUG - Error fetching all admins:', debugDbError.message);
       }
       return { success: false, error: 'Login failed: Could not save session (verification by token failed). Please try again.' };
     }
-    console.log('[AUTH] Session token successfully verified in DB by querying token itself for admin ID:', admin.id);
+    console.log('[AUTH] Session token successfully verified in DB by querying token itself for admin ID:', admin.id, 'Username:', verifiedAdminByToken.username);
 
   } catch (dbError: any) {
     console.error('[AUTH] Database error during session token update/verification. Admin ID:', admin.id, 'Error:', dbError.message, 'Stack:', dbError.stack);
@@ -128,6 +128,7 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
 
   try {
     const stmt = db.prepare('SELECT id, username, password, sessionToken FROM admins WHERE sessionToken = ?');
+    // The `password` column is included here for debug logging below, but not returned in AdminUser
     const admin = stmt.get(tokenFromCookie) as (AdminUser & { password?: string; sessionToken?: string | null }) | undefined;
 
     if (admin && admin.sessionToken === tokenFromCookie) {
@@ -142,7 +143,7 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
       // For debugging, let's see all admins and their tokens if no match is found.
       try {
         const allAdminsInDB = db.prepare('SELECT id, username, password, sessionToken FROM admins').all();
-        console.log('[AUTH] getCurrentAdmin: DEBUG - All admins currently in DB:', JSON.stringify(allAdminsInDB, null, 2));
+        console.log('[AUTH] getCurrentAdmin: DEBUG - All admins currently in DB (tokens shown for matching debug):', JSON.stringify(allAdminsInDB.map(a => ({id: a.id, username: a.username, sessionToken: a.sessionToken ? `...${(a.sessionToken as string).slice(-6)}` : null, passwordStored: !!a.password})), null, 2));
       } catch (debugDbError: any) {
         console.error('[AUTH] getCurrentAdmin: DEBUG - Error fetching all admins:', debugDbError.message);
       }
@@ -150,7 +151,7 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
     }
   } catch (dbError: any) {
     console.error('[AUTH] getCurrentAdmin: Database error during admin lookup for token:', `"${tokenFromCookie}"`, 'Error:', dbError.message);
-    // console.error('[AUTH] getCurrentAdmin: Full stack for DB error:', dbError.stack); // Uncomment if very deep debugging is needed
+    console.error('[AUTH] getCurrentAdmin: Full stack for DB error:', dbError.stack);
     return null;
   }
 }
