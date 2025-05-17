@@ -75,8 +75,8 @@ export function LoginDialog() {
     }}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <User className="h-4 w-4 sm:mr-2" /> {/* Conditionally apply margin */}
-          <span className="hidden sm:inline">Login</span>
+          <User className="h-4 w-4 md:mr-2" /> {/* Apply margin on md+ */}
+          <span className="hidden md:inline">Login</span> {/* Show text on md+ */}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

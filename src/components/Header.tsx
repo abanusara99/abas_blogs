@@ -20,8 +20,8 @@ export async function Header() {
         <div className="col-span-1 flex justify-start">
           <Button asChild variant="destructive" size="sm">
             <Link href="https://anuportfoliovisit.vercel.app/" target="_blank" rel="noopener noreferrer">
-              <Info className="h-4 w-4 sm:mr-2" /> {/* Conditionally apply margin */}
-              <span className="hidden sm:inline">About</span>
+              <Info className="h-4 w-4 md:mr-2" /> {/* Apply margin on md+ */}
+              <span className="hidden md:inline">About</span> {/* Show text on md+ */}
             </Link>
           </Button>
         </div>
@@ -34,14 +34,14 @@ export async function Header() {
               <span className="text-sm text-muted-foreground hidden md:inline">Hi, {admin.username}</span> {/* Show username on md+ */}
               <Button asChild variant="default" data-admin-visibility="true">
                 <Link href="/posts/create">
-                  <PlusCircle className="h-5 w-5 sm:mr-2" /> {/* Conditionally apply margin */}
-                  <span className="hidden sm:inline">Create Post</span>
+                  <PlusCircle className="h-5 w-5 md:mr-2" /> {/* Apply margin on md+ */}
+                  <span className="hidden md:inline">Create Post</span> {/* Show text on md+ */}
                 </Link>
               </Button>
               <form action={handleLogout}>
                 <Button type="submit" variant="outline" size="sm">
-                  <LogOut className="h-4 w-4 sm:mr-2" /> {/* Conditionally apply margin */}
-                  <span className="hidden sm:inline">Logout</span>
+                  <LogOut className="h-4 w-4 md:mr-2" /> {/* Apply margin on md+ */}
+                  <span className="hidden md:inline">Logout</span> {/* Show text on md+ */}
                 </Button>
               </form>
             </>
