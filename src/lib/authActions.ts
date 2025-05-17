@@ -112,9 +112,14 @@ export async function logout(): Promise<{ success: boolean }> {
   return { success: true };
 }
 
+// Helper function to retrieve the session token value
+async function getSessionTokenValue(): Promise<string | undefined> {
+  const cookieStore = cookies();
+  return cookieStore.get(SESSION_COOKIE_NAME)?.value;
+}
+
 export async function getCurrentAdmin(): Promise<AdminUser | null> {
-  const cookieStore = cookies(); // This is the standard way to get the cookie store in an async context
-  const tokenFromCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const tokenFromCookie = await getSessionTokenValue();
 
   if (!tokenFromCookie) {
     // This is normal if the user is not logged in. No need to log every time for this case.
@@ -154,4 +159,3 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
     return null;
   }
 }
-
